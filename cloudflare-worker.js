@@ -22,18 +22,35 @@ async function handleRequest(request, event) {
   }
 
   try {
-    // 2. Jika tidak ada di cache, ambil data langsung dari API JKT48 secara paralel
-    const [pcSbyRes, pcYogyaRes, shotSbyRes, shotYogyaRes] = await Promise.all([
-      fetch("https://jkt48.com/api/v1/exclusives/EX9A4A/bonus?lang=id"),
-      fetch("https://jkt48.com/api/v1/exclusives/EXCB75/bonus?lang=id"),
-      fetch("https://jkt48.com/api/v1/exclusives/EX3773/bonus?lang=id"),
-      fetch("https://jkt48.com/api/v1/exclusives/EXCD2C/bonus?lang=id")
-    ])
+    // Fungsi pembantu untuk fetch dengan header lengkap
+    async function fetchJson(url) {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Referer': 'https://jkt48.com/'
+        }
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status} untuk ${url}. Respon: ${text.slice(0, 100)}`);
+      }
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(`Bukan JSON (${contentType}) untuk ${url}. Respon: ${text.slice(0, 100)}`);
+      }
+      return res.json();
+    }
 
-    const pcSby = await pcSbyRes.json()
-    const pcYogya = await pcYogyaRes.json()
-    const shotSby = await shotSbyRes.json()
-    const shotYogya = await shotYogyaRes.json()
+    // 2. Jika tidak ada di cache, ambil data langsung dari API JKT48 secara paralel
+    const [pcSby, pcYogya, shotSby, shotYogya] = await Promise.all([
+      fetchJson("https://jkt48.com/api/v1/exclusives/EX9A4A/bonus?lang=id"),
+      fetchJson("https://jkt48.com/api/v1/exclusives/EXCB75/bonus?lang=id"),
+      fetchJson("https://jkt48.com/api/v1/exclusives/EX3773/bonus?lang=id"),
+      fetchJson("https://jkt48.com/api/v1/exclusives/EXCD2C/bonus?lang=id")
+    ])
 
     let output = []
 
