@@ -1,0 +1,66 @@
+name: JKT48 Auto Fetch Bot
+
+on:
+  schedule:
+    # Mengambil data otomatis secara terjadwal (Setiap 5 menit)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Membuat tombol manual jika ingin di-klik paksa refresh kapan saja
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Fetch API JKT48 & Format Data
+        run: |
+          # Ambil data dari kedua event ID JKT48 Anda
+          RESPONSE_1=$(curl -s "https://jkt48.com/api/v1/exclusives/EXCD2C/bonus?lang=id")
+          RESPONSE_2=$(curl -s "https://jkt48.com/api/v1/exclusives/EX3773/bonus?lang=id")
+          
+          # Eksekusi script node sederhana untuk memformat gabungan JSON menjadi rapi flat array
+          node - e "
+          try {
+            const res1 = $RESPONSE_1;
+            const res2 = $RESPONSE_2;
+            let output = [];
+            
+            const gabungData = [...(res1.data || []), ...(res2.data || [])];
+            
+            gabungData.forEach(sesi => {
+              const sesiSingkat = (sesi.label || 'Sesi').split('·')[0].trim();
+              if (sesi.session_members) {
+                sesi.session_members.forEach(m => {
+                  output.push({
+                    sesi: sesiSingkat,
+                    jalur: m.label || '-',
+                    nama: m.member_name,
+                    terjual: m.tickets_sold,
+                    sisa: m.quota
+                  });
+                });
+              }
+            });
+            
+            // Sort sisa tiket paling dikit ke atas
+            output.sort((a, b) => a.sisa - b.sisa);
+            
+            const waktuWIB = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB';
+            const finalJson = { last_updated: waktuWIB, data: output };
+            
+            require('fs').writeFileSync('data.json', JSON.stringify(finalJson, null, 2));
+            console.log('File data.json berhasil digenerate.');
+          } catch(e) {
+            console.error('Gagal memformat JSON:', e.message);
+            process.exit(1);
+          }
+          "
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "jkt48-bot"
+          git config --global user.email "bot@github.com"
+          git add data.json
+          git commit -m "Auto update kuota tiket: $(date)" || exit 0
+          git push
