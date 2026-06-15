@@ -94,13 +94,18 @@
         let filterJenisAktif = 'SEMUA';
         let filterEventAktif = 'SEMUA';
 
-        // Mengambil data dari berkas data.json lokal hasil generate server GitHub Actions
+        // Silakan ganti dengan URL Cloudflare Worker Anda setelah dideploy
+        // Contoh: const API_URL = 'https://jkt48-monitor-api.username.workers.dev';
+        const API_URL = 'https://jkt48-monitor-api.jefryoconner49.workers.dev';
+
+        // Mengambil data dari berkas data.json lokal hasil generate server GitHub Actions atau Cloudflare Worker
         async function bacaDataLokal() {
             const statusDiv = document.getElementById('statusFetch');
             try {
-                // Trik cache-buster (?_cb=) digunakan agar browser selalu membaca data asli terbaru, bukan cache lamanya
-                const response = await fetch('./data.json?_cb=' + new Date().getTime());
-                if (!response.ok) throw new Error("Berkas data.json belum dibuat oleh server GitHub.");
+                // Gunakan cache-buster jika membaca data lokal, jika menggunakan API Worker tidak perlu cache-buster
+                const fetchUrl = API_URL.startsWith('http') ? API_URL : API_URL + '?_cb=' + new Date().getTime();
+                const response = await fetch(fetchUrl);
+                if (!response.ok) throw new Error("Gagal mengambil data kuota JKT48.");
                 
                 const dataJson = await response.json();
                 semuaMasterData = dataJson.data || [];

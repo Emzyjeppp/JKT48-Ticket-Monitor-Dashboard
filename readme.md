@@ -1,23 +1,72 @@
-# 🔴 JKT48 Live Ticket Monitor Dashboard
+# 🔴 JKT48 Tour Live Monitor Dashboard
 
-Aplikasi web dashboard berbasis client-side untuk memantau kuota dan sisa stok tiket *exclusive event* JKT48 secara otomatis dan *real-time*. Sistem ini memanfaatkan **GitHub Actions** sebagai bot otomatis di latar belakang untuk memperbarui data tanpa perlu melakukan *copy-paste* JSON secara manual.
+Aplikasi web dashboard berbasis client-side untuk memantau kuota dan sisa stok tiket *exclusive event* (Photocard & 2-Shot) JKT48 secara otomatis, akurat, dan real-time tepat waktu setiap 1 menit. 
+
+Sistem ini memantau rangkaian event JKT48 berikut:
+*   **Passion Yogyakarta** — 27 Juni 2026
+*   **Love Surabaya** — 28 Juni 2026
+*   **Dream Surabaya** — 2 Juli 2026
+
+## ⚙️ Arsitektur Baru (Real-Time 1 Menit)
+
+Dashboard ini menggunakan arsitektur hybrid yang efisien dan gratis penuh:
+1.  **Frontend (GitHub Pages)**: `index.html` yang ringan, responsif (menggunakan TailwindCSS), dan melakukan auto-refresh tampilan setiap 15 detik.
+2.  **API Backend (Cloudflare Workers)**: Script serverless `cloudflare-worker.js` yang bertindak sebagai API proxy & parser. API ini mem-fetch data dari API resmi JKT48 secara paralel, merapikan strukturnya, dan menyimpannya di cache CDN Cloudflare selama **60 detik (1 menit)** demi menghindari pembatasan limit IP (*rate limiting*) dari JKT48.
+
+```text
+[Browser User] ──(Tiap 15s)──> [Cloudflare Worker API]
+                                     │
+                             (Cache expired? > 1 min)
+                                     │
+                                     ▼
+                            [API Resmi JKT48]
+```
 
 ## 🚀 Fitur Utama
 
-- **Live Auto-Fetch (Tanpa Copas):** Menggunakan GitHub Actions untuk melakukan sinkronisasi data dari API resmi JKT48 secara otomatis.
-- **Smart Sorting:** Angka sisa tiket/kuota member yang paling sedikit (hampir *sold out*) otomatis diurutkan ke paling atas untuk mempermudah pemantauan saat *war* tiket.
-- **Live Search Filter:** Mempermudah pencarian sesi atau nama oshi secara instan tanpa perlu memuat ulang halaman web.
-- **Visual Badge Status:** Menampilkan penanda status kuota secara dinamis (*Tersedia*, *Menipis* `< 5`, atau *SOLD OUT*).
-- **Zero CORS Error:** Karena data di-generate ke dalam file internal repositori (`data.json`), web aman dari pemblokiran *CORS Policy* browser.
+*   **Pembaruan Tepat Waktu (1 Menit)**: Data dijamin segar dan diperbarui setiap 60 detik melalui Cloudflare Edge network tanpa delay antrean GitHub Actions.
+*   **Smart Sorting**: Tiket oshi atau kuota member yang paling sedikit (hampir *sold out*) otomatis diurutkan ke bagian paling atas untuk mempermudah pemantauan saat *war* tiket.
+*   **Multi-Filter & Live Search**: Menyaring kategori (*Semua*, *Photocard*, *2-Shot*) dan lokasi event (*Yogyakarta* / *Surabaya*) secara instan serta pencarian nama member secara real-time.
+*   **Visual Badge Status**: Menampilkan penanda status kuota secara dinamis (*Tersedia*, *Menipis* `<= 5`, atau *SOLD OUT*).
+*   **Bebas CORS**: Menggunakan header *Access-Control-Allow-Origin: \** di sisi Cloudflare Worker sehingga browser tidak akan memblokir request.
 
 ---
 
 ## 🛠️ Struktur Repositori
 
 ```text
-├── .github/
-│   └── workflows/
-│       └── cron.yml       # Bot otomatis GitHub Actions (Setiap 5 menit)
-├── index.html             # Tampilan dashboard utama (GitHub Pages)
-├── data.json              # Output data kuota tiket terformat (Auto-generated)
-└── README.md              # Dokumentasi proyek
+├── index.html             # Dashboard utama (Frontend - GitHub Pages)
+├── cloudflare-worker.js   # Script serverless scraper & cache API (Cloudflare Worker)
+├── wrangler.json          # File konfigurasi deploy CLI Wrangler
+└── README.md              # Dokumentasi proyek ini
+```
+
+---
+
+## 💻 Cara Deploy Mandiri
+
+### 1. Deploy API (Cloudflare Workers)
+Buka terminal Anda di dalam folder proyek ini dan jalankan perintah:
+```bash
+# Login ke akun Cloudflare Anda via browser
+npx wrangler login
+
+# Unggah dan deploy API Worker ke Cloudflare
+npx wrangler deploy
+```
+*Setelah deploy selesai, salin URL Worker yang diberikan di terminal (misal: `https://jkt48-monitor-api.username.workers.dev`).*
+
+### 2. Hubungkan Frontend
+Buka berkas `index.html` dan perbarui nilai variabel `API_URL` pada baris ke-99 dengan URL Worker Anda:
+```javascript
+const API_URL = 'https://jkt48-monitor-api.username.workers.dev';
+```
+
+### 3. Deploy Frontend (GitHub Pages)
+Commit dan push perubahan ke repositori baru Anda untuk mengaktifkan halaman web:
+```bash
+git add .
+git commit -m "Deploy setup monitor JKT48"
+git push origin main
+```
+*Aktifkan GitHub Pages di tab **Settings > Pages** repositori Anda dan arahkan ke branch `main`.*
