@@ -2,15 +2,12 @@ name: JKT48 Auto Fetch Bot
 
 on:
   schedule:
-    # Mengambil data otomatis secara terjadwal setiap 5 menit
     - cron: '*/5 * * * *'
-  workflow_dispatch: # Mengaktifkan tombol manual "Run workflow" di halaman GitHub Actions
+  workflow_dispatch:
 
 jobs:
   update-data:
     runs-on: ubuntu-latest
-    
-    # Membuka izin akses agar bot bisa nge-push/menulis file data.json kembali ke repositori
     permissions:
       contents: write
 
@@ -18,64 +15,68 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Fetch API JKT48 & Format Data
+      - name: Fetch API JKT48 Fix Endpoints
         run: |
-          # Ambil data mentah dari kedua endpoint event JKT48 Anda
-          RESPONSE_1=$(curl -s "https://jkt48.com/api/v1/exclusives/EXCD2C/bonus?lang=id")
-          RESPONSE_2=$(curl -s "https://jkt48.com/api/v1/exclusives/EX3773/bonus?lang=id")
+          # 1. Kategori PHOTOCARD
+          PC_SBY=$(curl -s "https://jkt48.com/api/v1/exclusives/EX9A4A/bonus?lang=id")
+          PC_YOGYA=$(curl -s "https://jkt48.com/api/v1/exclusives/EXCB75/bonus?lang=id")
           
-          # Jalankan script Node.js instan untuk menyatukan dan merapikan struktur data
+          # 2. Kategori 2-SHOT
+          SHOT_SBY=$(curl -s "https://jkt48.com/api/v1/exclusives/EX3773/bonus?lang=id")
+          SHOT_YOGYA=$(curl -s "https://jkt48.com/api/v1/exclusives/EXCD2C/bonus?lang=id")
+          
           node -e "
           try {
-            const res1 = $RESPONSE_1;
-            const res2 = $RESPONSE_2;
             let output = [];
-            
-            // Gabungkan array data dari kedua event jika ada
-            const gabungData = [...(res1.data || []), ...(res2.data || [])];
-            
-            gabungData.forEach(sesi => {
-              const sesiSingkat = (sesi.label || 'Sesi').split('·')[0].trim();
-              if (sesi.session_members) {
-                sesi.session_members.forEach(m => {
-                  output.push({
-                    sesi: sesiSingkat,
-                    jalur: m.label || '-',
-                    nama: m.member_name,
-                    terjual: m.tickets_sold,
-                    sisa: m.quota
-                  });
+
+            // Fungsi pembantu untuk parsing data secara terstruktur
+            function cetakData(jsonData, jenisBenefit, namaEvent) {
+              if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
+                jsonData.data.forEach(sesi => {
+                  const labelSesi = sesi.label || 'Sesi';
+                  const sesiSingkat = labelSesi.split('·')[0].trim();
+                  
+                  if (sesi.session_members) {
+                    sesi.session_members.forEach(m => {
+                      output.push({
+                        sesi: sesiSingkat,
+                        event: namaEvent,
+                        jenis: jenisBenefit,
+                        jalur: m.label || '-',
+                        nama: m.member_name,
+                        terjual: m.tickets_sold,
+                        sisa: m.quota
+                      });
+                    });
+                  }
                 });
               }
-            });
+            }
+
+            // Eksekusi parsing sesuai pembagian link dari user
+            cetakData($PC_SBY, 'Photocard', 'LOVE & DREAM (SBY)');
+            cetakData($PC_YOGYA, 'Photocard', 'PASSION (YOGYA)');
+            cetakData($SHOT_SBY, '2-Shot', 'LOVE & DREAM (SBY)');
+            cetakData($SHOT_YOGYA, '2-Shot', 'PASSION (YOGYA)');
             
-            // Urutkan data otomatis: Sisa stok paling sedikit (hampir habis) ditaruh paling atas
+            // Urutkan kuota tiket paling menipis ke paling atas
             output.sort((a, b) => a.sisa - b.sisa);
             
-            // Format penanda waktu pembaruan dalam zona waktu WIB (Asia/Jakarta)
             const waktuWIB = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB';
             const finalJson = { last_updated: waktuWIB, data: output };
             
-            // Simpan hasil akhir ke file data.json
             require('fs').writeFileSync('data.json', JSON.stringify(finalJson, null, 2));
-            console.log('File data.json berhasil diperbarui dengan sukses.');
+            console.log('File data.json sukses diperbarui dengan data link ter-fix.');
           } catch(e) {
-            console.error('Gagal memproses atau memformat data JSON:', e.message);
+            console.error('Gagal memproses JSON:', e.message);
             process.exit(1);
           }
           "
 
       - name: Commit and Push Changes
         run: |
-          # Konfigurasi identitas bot git sementara
           git config --global user.name "jkt48-bot"
           git config --global user.email "bot@github.com"
-          
-          # Tambahkan file data.json yang baru dibuat ke staging area
           git add data.json
-          
-          # Lakukan commit, jika tidak ada perubahan data kuota, hentikan proses dengan aman (exit 0)
-          git commit -m "Auto update kuota tiket: $(date)" || exit 0
-          
-          # Push pembaruan file langsung ke branch utama
+          git commit -m "Auto update kuota fix link: $(date)" || exit 0
           git push
