@@ -80,9 +80,9 @@ async function handleRequest(request, event) {
     const listRes = await fetchJson("https://jkt48.com/api/v1/exclusives?lang=id");
     const exclusives = listRes.data || [];
 
-    // Filter hanya kategori PHOTOCARD dan TWO_SHOT yang dirilis kurang dari 30 hari lalu (untuk menyembunyikan event masa lalu)
+    // Filter hanya kategori PHOTOCARD, TWO_SHOT, dan DIGITAL_PHOTOBOOK yang dirilis kurang dari 30 hari lalu
     const activeExclusives = exclusives.filter(item => {
-      if (item.category !== "PHOTOCARD" && item.category !== "TWO_SHOT") return false;
+      if (item.category !== "PHOTOCARD" && item.category !== "TWO_SHOT" && item.category !== "DIGITAL_PHOTOBOOK") return false;
       const releaseDate = new Date(item.valid_date_from);
       const ageInDays = (new Date() - releaseDate) / (1000 * 60 * 60 * 24);
       return ageInDays < 30; // Hanya ambil yang berusia kurang dari 30 hari
@@ -110,7 +110,9 @@ async function handleRequest(request, event) {
 
     // 3. Parsing data terstruktur dari setiap eksklusif
     details.forEach(item => {
-      const jenisBenefit = item.category === 'PHOTOCARD' ? 'Photocard' : '2-Shot';
+      const jenisBenefit = item.category === 'PHOTOCARD' 
+        ? 'Photocard' 
+        : (item.category === 'TWO_SHOT' ? '2-Shot' : 'Video Call');
       const namaEvent = parseEventName(item.title);
       const jsonData = item.data;
 

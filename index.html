@@ -37,6 +37,9 @@
                     <button onclick="setJenisFilter('2-Shot')" id="btn-jns-2-Shot" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 cursor-pointer transition">
                         🤝 2-Shot Only
                     </button>
+                    <button onclick="setJenisFilter('Video Call')" id="btn-jns-Video Call" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 cursor-pointer transition">
+                        📞 Video Call Only
+                    </button>
                 </div>
             </div>
 
@@ -154,7 +157,7 @@
         // Handler perubahan filter tombol Photocard / 2-Shot
         function setJenisFilter(jenis) {
             filterJenisAktif = jenis;
-            ['SEMUA', 'Photocard', '2-Shot'].forEach(j => {
+            ['SEMUA', 'Photocard', '2-Shot', 'Video Call'].forEach(j => {
                 const btn = document.getElementById(`btn-jns-${j}`);
                 if(btn) {
                     if(j === jenis) {
@@ -279,7 +282,9 @@
                 // Bedakan warna badge kategori agar sedap dipandang mata
                 const jenisBadge = item.jenis === 'Photocard' 
                     ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">📸 Photocard</span>`
-                    : `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30">🤝 2-Shot</span>`;
+                    : (item.jenis === '2-Shot'
+                       ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30">🤝 2-Shot</span>`
+                       : `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/30">📞 Video Call</span>`);
 
                 tbody.innerHTML += `
                     <tr class="${rowBg}">
