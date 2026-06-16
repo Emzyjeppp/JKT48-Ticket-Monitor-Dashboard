@@ -2,6 +2,7 @@ let semuaMasterData = [];
 let filterJenisAktif = 'SEMUA';
 let filterEventAktif = 'SEMUA';
 let urutanAktif = 'TERSEDIA';
+let oshiBookmarks = JSON.parse(localStorage.getItem('oshiBookmarks')) || [];
 let fetchTimeout = null;
 
 // Ganti dengan URL Cloudflare Worker Anda setelah dideploy
@@ -20,6 +21,18 @@ function resetProgressBar() {
     
     progressBar.style.transition = 'width 15000ms linear';
     progressBar.style.width = '100%';
+}
+
+// Fungsi bookmark/pin oshi ke posisi teratas
+function toggleOshi(memberName) {
+    const idx = oshiBookmarks.indexOf(memberName);
+    if (idx > -1) {
+        oshiBookmarks.splice(idx, 1);
+    } else {
+        oshiBookmarks.push(memberName);
+    }
+    localStorage.setItem('oshiBookmarks', JSON.stringify(oshiBookmarks));
+    filterData();
 }
 
 // Mengambil data dari berkas data.json lokal hasil generate server GitHub Actions atau Cloudflare Worker
@@ -145,19 +158,26 @@ function filterData() {
         return cocokKeyword && cocokJenis && cocokEvent;
     });
     
-    if (urutanAktif === 'TERSEDIA') {
-        hasilFilter.sort((a, b) => {
+    hasilFilter.sort((a, b) => {
+        const aIsOshi = oshiBookmarks.includes(a.nama);
+        const bIsOshi = oshiBookmarks.includes(b.nama);
+
+        // Oshi yang dipin selalu berada paling atas
+        if (aIsOshi && !bIsOshi) return -1;
+        if (!aIsOshi && bIsOshi) return 1;
+
+        // Jika sama-sama dipin atau sama-sama tidak dipin, urutkan berdasarkan kriteria aktif
+        if (urutanAktif === 'TERSEDIA') {
             if (a.sisa === 0 && b.sisa !== 0) return 1;
             if (a.sisa !== 0 && b.sisa === 0) return -1;
             return a.sisa - b.sisa;
-        });
-    } else if (urutanAktif === 'SOLDOUT') {
-        hasilFilter.sort((a, b) => {
+        } else if (urutanAktif === 'SOLDOUT') {
             if (a.sisa === 0 && b.sisa !== 0) return -1;
             if (a.sisa !== 0 && b.sisa === 0) return 1;
             return a.sisa - b.sisa;
-        });
-    }
+        }
+        return 0;
+    });
     
     renderTabel(hasilFilter);
 }
@@ -190,12 +210,17 @@ function renderTabel(data) {
                ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap">📸 2-Shot</span>`
                : `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/30 whitespace-nowrap">📞 Video Call</span>`);
 
+        const isOshi = oshiBookmarks.includes(item.nama);
+        const starButton = isOshi 
+            ? `<button onclick="toggleOshi('${item.nama}')" class="text-amber-400 hover:text-amber-300 mr-2 focus:outline-none transition cursor-pointer text-base select-none">⭐</button>`
+            : `<button onclick="toggleOshi('${item.nama}')" class="text-slate-600 hover:text-amber-400 mr-2 focus:outline-none transition cursor-pointer text-base select-none">☆</button>`;
+
         tbody.innerHTML += `
             <tr class="${rowBg}">
                 <td class="p-4 font-bold text-xs text-sky-400 uppercase tracking-wider">${item.event}</td>
                 <td class="p-4">${jenisBadge}</td>
                 <td class="p-4 font-medium text-slate-300 text-xs">${item.sesi}</td>
-                <td class="p-4 font-bold text-slate-100">${item.nama} <span class="block text-slate-400 font-normal text-xs mt-0.5">${item.jalur}</span></td>
+                <td class="p-4 font-bold text-slate-100 flex items-center">${starButton}<div>${item.nama} <span class="block text-slate-400 font-normal text-xs mt-0.5">${item.jalur}</span></div></td>
                 <td class="p-4 text-center font-mono font-semibold text-slate-400">${item.terjual}</td>
                 <td class="p-4 text-center font-mono font-bold text-emerald-400 text-base">${item.sisa}</td>
                 <td class="p-4 text-center">${statusBadge}</td>
