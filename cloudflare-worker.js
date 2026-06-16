@@ -8,10 +8,9 @@ async function handleRequest(request, event) {
   const cacheKey = new Request(cacheUrl.toString(), request)
   const cache = caches.default
 
-  // 1. Coba ambil data dari cache Cloudflare terlebih dahulu
+  // Coba ambil dari cache Cloudflare terlebih dahulu
   let response = await cache.match(cacheKey)
   if (response) {
-    // Tambahkan/pastikan header CORS ada di respon cache
     const newHeaders = new Headers(response.headers)
     newHeaders.set('Access-Control-Allow-Origin', '*')
     return new Response(response.body, {
@@ -44,7 +43,7 @@ async function handleRequest(request, event) {
       return res.json();
     }
 
-    // 2. Jika tidak ada di cache, ambil data langsung dari API JKT48 secara paralel
+    // 1. Ambil data langsung dari API JKT48 secara paralel
     const [pcSby, pcYogya, shotSby, shotYogya] = await Promise.all([
       fetchJson("https://jkt48.com/api/v1/exclusives/EX9A4A/bonus?lang=id"),
       fetchJson("https://jkt48.com/api/v1/exclusives/EXCB75/bonus?lang=id"),
@@ -83,6 +82,63 @@ async function handleRequest(request, event) {
     parseData(shotSby, '2-Shot', 'LOVE & DREAM (SBY)')
     parseData(shotYogya, '2-Shot', 'PASSION (YOGYA)')
 
+    // 2. Deteksi Transaksi & Urutan Sold Out Tercepat (jika database JKT48_DB terhubung)
+    let history = [];
+    if (typeof JKT48_DB !== 'undefined') {
+      try {
+        let lastSnapshot = await JKT48_DB.get("last_snapshot", "json");
+        let transactions = [];
+
+        if (lastSnapshot) {
+          const lastMap = new Map();
+          lastSnapshot.forEach(item => {
+            const key = `${item.event}-${item.jenis}-${item.sesi}-${item.nama}-${item.jalur}`;
+            lastMap.set(key, item);
+          });
+
+          output.forEach(item => {
+            const key = `${item.event}-${item.jenis}-${item.sesi}-${item.nama}-${item.jalur}`;
+            const prev = lastMap.get(key);
+
+            if (prev) {
+              const deltaTerjual = item.terjual - prev.terjual;
+              if (deltaTerjual > 0) {
+                const isSoldOutNow = (item.sisa === 0 && prev.sisa > 0);
+                transactions.push({
+                  waktu: new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' }),
+                  event: item.event,
+                  jenis: item.jenis,
+                  sesi: item.sesi,
+                  nama: item.nama,
+                  jalur: item.jalur,
+                  jumlah: deltaTerjual,
+                  sisa: item.sisa,
+                  soldOut: isSoldOutNow
+                });
+              }
+            }
+          });
+        }
+
+        // Lakukan pembaruan database jika ada data baru
+        if (output.length > 0) {
+          if (!lastSnapshot || transactions.length > 0) {
+            await JKT48_DB.put("last_snapshot", JSON.stringify(output));
+          }
+        }
+
+        if (transactions.length > 0) {
+          let oldHistory = await JKT48_DB.get("history", "json") || [];
+          history = [...transactions, ...oldHistory].slice(0, 50);
+          await JKT48_DB.put("history", JSON.stringify(history));
+        } else {
+          history = await JKT48_DB.get("history", "json") || [];
+        }
+      } catch (dbErr) {
+        console.error("Gagal memproses database KV:", dbErr.message);
+      }
+    }
+
     // Urutkan kuota tiket: sisa > 0 (menipis ke atas) di paling atas, dan sisa = 0 (SOLD OUT) di paling bawah
     output.sort((a, b) => {
       if (a.sisa === 0 && b.sisa !== 0) return 1;
@@ -100,7 +156,8 @@ async function handleRequest(request, event) {
 
     const finalData = {
       last_updated: waktuWIB,
-      data: output
+      data: output,
+      history: history
     }
 
     // Buat response dengan CORS enabled & Cache-Control (60 detik)
@@ -108,11 +165,11 @@ async function handleRequest(request, event) {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=60' // Disimpan di cache browser & CDN selama 60 detik
+        'Cache-Control': 'public, max-age=60'
       }
     })
 
-    // Simpan ke cache Cloudflare
+    // Simpan ke cache Cloudflare (jika bukan error)
     event.waitUntil(cache.put(cacheKey, response.clone()))
 
     return response

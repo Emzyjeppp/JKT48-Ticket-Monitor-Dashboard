@@ -1,3 +1,7 @@
 name = "jkt48-monitor-api"
 main = "cloudflare-worker.js"
 compatibility_date = "2024-03-01"
+
+[[kv_namespaces]]
+binding = "JKT48_DB"
+id = "26f6e225cb554055bf319d2cbc6bef6f"

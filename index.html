@@ -77,6 +77,16 @@
             </div>
         </section>
 
+        <!-- Bagian History / Transaksi Terkini -->
+        <section class="bg-slate-800 p-5 rounded-xl shadow-lg border border-slate-700 mb-6">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center gap-2">
+                ⏱️ Aktivitas Penjualan & Sold Out Terkini (Global)
+            </h2>
+            <div id="historyLog" class="max-h-40 overflow-y-auto space-y-2 text-xs font-mono text-slate-300 divide-y divide-slate-700/50 pr-2">
+                <div class="py-1 text-slate-500 italic">Belum ada aktivitas transaksi yang tercatat. Data akan muncul otomatis saat tiket terjual atau sold out.</div>
+            </div>
+        </section>
+
         <main>
             <div class="overflow-x-auto bg-slate-800 rounded-xl shadow-lg border border-slate-700">
                 <table class="w-full text-left border-collapse">
@@ -122,6 +132,9 @@
                 
                 const dataJson = await response.json();
                 semuaMasterData = dataJson.data || [];
+                
+                // Perbarui log riwayat transaksi
+                renderHistory(dataJson.history || []);
                 
                 document.getElementById('lastUpdate').innerText = `Terakhir Sync JKT48: ${dataJson.last_updated || '-'}`;
                 statusDiv.innerText = "🟢 Data Sinkron";
@@ -270,6 +283,42 @@
                     </tr>
                 `;
             });
+        }
+
+        // Fungsi merender riwayat aktivitas transaksi terkini
+        function renderHistory(historyList) {
+            const historyDiv = document.getElementById('historyLog');
+            if (!historyList || historyList.length === 0) {
+                historyDiv.innerHTML = `<div class="py-1 text-slate-500 italic">Belum ada aktivitas transaksi yang tercatat. Data akan muncul otomatis saat tiket terjual atau sold out.</div>`;
+                return;
+            }
+
+            historyDiv.innerHTML = historyList.map(item => {
+                let badge = '';
+                let textClass = 'text-slate-300';
+                
+                if (item.soldOut) {
+                    badge = `<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/30">🔥 SOLD OUT</span>`;
+                    textClass = 'text-rose-300 font-bold';
+                } else {
+                    badge = `<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🛒 TERJUAL</span>`;
+                }
+
+                const detailEvent = `[${item.event}]`;
+                const detailSesi = `${item.sesi} - ${item.nama} (${item.jalur})`;
+                const detailJumlah = item.soldOut ? `telah HABIS (SOLD OUT)!` : `terjual +${item.jumlah} (Sisa: ${item.sisa})`;
+
+                return `
+                    <div class="py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-700/50 last:border-b-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-slate-500 font-semibold">[${item.waktu}]</span>
+                            ${badge}
+                            <span class="${textClass}">${detailSesi} ${detailJumlah}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-500">${detailEvent}</div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // Eksekusi pemanggilan otomatis saat halaman pertama kali dibuka
