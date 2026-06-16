@@ -152,22 +152,22 @@ function renderTabel(data) {
     }
 
     data.forEach(item => {
-        let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400">Tersedia</span>`;
+        let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400 whitespace-nowrap">Tersedia</span>`;
         let rowBg = "hover:bg-slate-700/30 transition";
 
         if (item.sisa === 0) {
-            statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-rose-500/20 text-rose-400">SOLD OUT</span>`;
+            statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-rose-500/20 text-rose-400 whitespace-nowrap">SOLD OUT</span>`;
             rowBg = "bg-rose-950/10 text-slate-500 hover:bg-rose-950/20";
         } else if (item.sisa <= 5) {
-            statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-amber-500/20 text-amber-400 animate-pulse">Menipis</span>`;
+            statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-amber-500/20 text-amber-400 animate-pulse whitespace-nowrap">Menipis</span>`;
             rowBg = "bg-amber-950/10 hover:bg-amber-950/20 text-amber-100";
         }
 
         const jenisBadge = item.jenis === 'Photocard' 
-            ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">📸 Photocard</span>`
+            ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap">📸 Photocard</span>`
             : (item.jenis === '2-Shot'
-               ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30">🤝 2-Shot</span>`
-               : `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/30">📞 Video Call</span>`);
+               ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap">🤝 2-Shot</span>`
+               : `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/30 whitespace-nowrap">📞 Video Call</span>`);
 
         tbody.innerHTML += `
             <tr class="${rowBg}">
@@ -192,16 +192,16 @@ function renderHistory(historyList) {
     }
 
     historyDiv.innerHTML = historyList.map(item => {
-        const badge = `<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/30">🔥 SOLD OUT</span>`;
+        const badge = `<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/30 whitespace-nowrap">🔥 SOLD OUT</span>`;
         const textClass = 'text-rose-300 font-bold';
 
         let jenisBadge = '';
         if (item.jenis === 'Photocard') {
-            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">📸 PC</span>`;
+            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap">📸 PC</span>`;
         } else if (item.jenis === '2-Shot') {
-            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-purple-500/10 text-purple-400 border border-purple-500/30">🤝 2S</span>`;
+            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap">🤝 2S</span>`;
         } else {
-            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-teal-500/10 text-teal-400 border border-teal-500/30">📞 VC</span>`;
+            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-teal-500/10 text-teal-400 border border-teal-500/30 whitespace-nowrap">📞 VC</span>`;
         }
 
         const detailEvent = `[${item.event}]`;
