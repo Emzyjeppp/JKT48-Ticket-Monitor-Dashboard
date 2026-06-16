@@ -79,11 +79,11 @@
 
         <!-- Bagian History / Transaksi Terkini -->
         <section class="bg-slate-800 p-5 rounded-xl shadow-lg border border-slate-700 mb-6">
-            <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center gap-2">
-                ⏱️ Aktivitas Penjualan & Sold Out Terkini (Global)
+            <h2 class="text-sm font-bold uppercase tracking-wider text-rose-400 mb-3 flex items-center gap-2">
+                ⏱️ Riwayat Sold Out Tercepat (Global)
             </h2>
             <div id="historyLog" class="max-h-40 overflow-y-auto space-y-2 text-xs font-mono text-slate-300 divide-y divide-slate-700/50 pr-2">
-                <div class="py-1 text-slate-500 italic">Belum ada aktivitas transaksi yang tercatat. Data akan muncul otomatis saat tiket terjual atau sold out.</div>
+                <div class="py-1 text-slate-500 italic">Belum ada riwayat tiket sold out yang tercatat. Data akan muncul otomatis saat tiket member mulai habis.</div>
             </div>
         </section>
 
@@ -289,24 +289,17 @@
         function renderHistory(historyList) {
             const historyDiv = document.getElementById('historyLog');
             if (!historyList || historyList.length === 0) {
-                historyDiv.innerHTML = `<div class="py-1 text-slate-500 italic">Belum ada aktivitas transaksi yang tercatat. Data akan muncul otomatis saat tiket terjual atau sold out.</div>`;
+                historyDiv.innerHTML = `<div class="py-1 text-slate-500 italic">Belum ada riwayat tiket sold out yang tercatat. Data akan muncul otomatis saat tiket member mulai habis.</div>`;
                 return;
             }
 
             historyDiv.innerHTML = historyList.map(item => {
-                let badge = '';
-                let textClass = 'text-slate-300';
-                
-                if (item.soldOut) {
-                    badge = `<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/30">🔥 SOLD OUT</span>`;
-                    textClass = 'text-rose-300 font-bold';
-                } else {
-                    badge = `<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🛒 TERJUAL</span>`;
-                }
+                const badge = `<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/30">🔥 SOLD OUT</span>`;
+                const textClass = 'text-rose-300 font-bold';
 
                 const detailEvent = `[${item.event}]`;
                 const detailSesi = `${item.sesi} - ${item.nama} (${item.jalur})`;
-                const detailJumlah = item.soldOut ? `telah HABIS (SOLD OUT)!` : `terjual +${item.jumlah} (Sisa: ${item.sisa})`;
+                const detailJumlah = `telah HABIS (SOLD OUT)!`;
 
                 return `
                     <div class="py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-700/50 last:border-b-0">

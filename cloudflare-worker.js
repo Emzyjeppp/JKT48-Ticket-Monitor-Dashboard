@@ -101,9 +101,9 @@ async function handleRequest(request, event) {
             const prev = lastMap.get(key);
 
             if (prev) {
-              const deltaTerjual = item.terjual - prev.terjual;
-              if (deltaTerjual > 0) {
-                const isSoldOutNow = (item.sisa === 0 && prev.sisa > 0);
+              const isSoldOutNow = (item.sisa === 0 && prev.sisa > 0);
+              // Hanya catat ke log jika status berubah menjadi SOLD OUT sekarang
+              if (isSoldOutNow) {
                 transactions.push({
                   waktu: new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' }),
                   event: item.event,
@@ -111,9 +111,8 @@ async function handleRequest(request, event) {
                   sesi: item.sesi,
                   nama: item.nama,
                   jalur: item.jalur,
-                  jumlah: deltaTerjual,
                   sisa: item.sisa,
-                  soldOut: isSoldOutNow
+                  soldOut: true
                 });
               }
             }
