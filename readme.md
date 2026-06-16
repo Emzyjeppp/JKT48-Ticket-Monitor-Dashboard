@@ -1,6 +1,6 @@
-# 🔴 JKT48 Video Call Monitor Dashboard
+# 🔴 JKT48 Ticket Monitor Dashboard
 
-Aplikasi web dashboard berbasis client-side untuk memantau kuota dan sisa stok tiket *Video Call* JKT48 secara otomatis, akurat, dan real-time setiap 1 menit.
+Aplikasi web dashboard berbasis client-side untuk memantau kuota dan sisa stok tiket event JKT48 (Meet & Greet, 2-Shot, dan Video Call) secara otomatis, akurat, dan real-time setiap 1 menit.
 
 Sistem ini memantau rangkaian event JKT48 berikut:
 *   **JKT48 Personal Meet and Greet Festival: LOVE DREAM PASSION**
