@@ -27,9 +27,22 @@ if (!window.location.hostname.includes('localhost') && !window.location.protocol
             window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=8EuZqnNVZrtZ1Q_h";
             return false;
         }
+        if (event.ctrlKey && (event.keyCode === 67 || event.key === 'c' || event.key === 'C')) { // Ctrl+C
+            event.preventDefault();
+            alert("Fitur Copy (Ctrl+C) dinonaktifkan! 😉");
+            window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=8EuZqnNVZrtZ1Q_h";
+            return false;
+        }
     });
 
-    // 3. Loop Debugger
+    // 3. Blokir Event Copy / Salin Teks + Rickroll
+    document.addEventListener('copy', event => {
+        event.preventDefault();
+        alert("Fitur Menyalin Teks dinonaktifkan! 😉");
+        window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=8EuZqnNVZrtZ1Q_h";
+    });
+
+    // 4. Loop Debugger
     setInterval(function() {
         debugger;
     }, 100);
