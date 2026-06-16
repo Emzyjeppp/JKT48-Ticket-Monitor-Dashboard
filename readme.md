@@ -1,11 +1,10 @@
-# 🔴 JKT48 Tour Live Monitor Dashboard
+# 🔴 JKT48 Video Call Monitor Dashboard
 
-Aplikasi web dashboard berbasis client-side untuk memantau kuota dan sisa stok tiket *exclusive event* (Photocard & 2-Shot) JKT48 secara otomatis, akurat, dan real-time tepat waktu setiap 1 menit. 
+Aplikasi web dashboard berbasis client-side untuk memantau kuota dan sisa stok tiket *Video Call* JKT48 secara otomatis, akurat, dan real-time setiap 1 menit.
 
 Sistem ini memantau rangkaian event JKT48 berikut:
-*   **Passion Yogyakarta** — 27 Juni 2026
-*   **Love Surabaya** — 28 Juni 2026
-*   **Dream Surabaya** — 2 Juli 2026
+*   **JKT48 Personal Meet and Greet Festival: LOVE DREAM PASSION**
+*   **Love Dream Passion - Music Video Behind the Scenes**
 
 ## ⚙️ Arsitektur Baru (Real-Time 1 Menit)
 
@@ -26,7 +25,7 @@ Dashboard ini menggunakan arsitektur hybrid yang efisien dan gratis penuh:
 
 *   **Pembaruan Tepat Waktu (1 Menit)**: Data dijamin segar dan diperbarui setiap 60 detik melalui Cloudflare Edge network tanpa delay antrean GitHub Actions.
 *   **Smart Sorting**: Tiket oshi atau kuota member yang paling sedikit (hampir *sold out*) otomatis diurutkan ke bagian paling atas untuk mempermudah pemantauan saat *war* tiket.
-*   **Multi-Filter & Live Search**: Menyaring kategori (*Semua*, *Photocard*, *2-Shot*) dan lokasi event (*Yogyakarta* / *Surabaya*) secara instan serta pencarian nama member secara real-time.
+*   **Multi-Filter & Live Search**: Menyaring kategori dan nama event secara instan serta pencarian nama member secara real-time.
 *   **Visual Badge Status**: Menampilkan penanda status kuota secara dinamis (*Tersedia*, *Menipis* `<= 5`, atau *SOLD OUT*).
 *   **Bebas CORS**: Menggunakan header *Access-Control-Allow-Origin: \** di sisi Cloudflare Worker sehingga browser tidak akan memblokir request.
 
