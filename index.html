@@ -312,6 +312,16 @@
                 const badge = `<span class="px-2 py-0.5 text-[9px] font-bold rounded bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/30">🔥 SOLD OUT</span>`;
                 const textClass = 'text-rose-300 font-bold';
 
+                // Tentukan badge kategori (PC / 2S / VC)
+                let jenisBadge = '';
+                if (item.jenis === 'Photocard') {
+                    jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">📸 PC</span>`;
+                } else if (item.jenis === '2-Shot') {
+                    jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-purple-500/10 text-purple-400 border border-purple-500/30">🤝 2S</span>`;
+                } else {
+                    jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-teal-500/10 text-teal-400 border border-teal-500/30">📞 VC</span>`;
+                }
+
                 const detailEvent = `[${item.event}]`;
                 const detailSesi = `${item.sesi} - ${item.nama} (${item.jalur})`;
                 const detailJumlah = `telah HABIS (SOLD OUT)!`;
@@ -321,6 +331,7 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-slate-500 font-semibold">[${item.waktu}]</span>
                             ${badge}
+                            ${jenisBadge}
                             <span class="${textClass}">${detailSesi} ${detailJumlah}</span>
                         </div>
                         <div class="text-[10px] text-slate-500">${detailEvent}</div>
