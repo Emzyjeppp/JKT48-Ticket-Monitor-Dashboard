@@ -4,7 +4,12 @@ addEventListener('fetch', event => {
 })
 
 // Fungsi pembantu untuk menentukan nama event & lokasi secara otomatis dari judul
-function parseEventName(title) {
+function parseEventName(title, category) {
+  // Jika kategori adalah DIGITAL_PHOTOBOOK (Video Call), gunakan judul asli produknya agar tidak membingungkan
+  if (category === "DIGITAL_PHOTOBOOK") {
+    return title;
+  }
+
   const t = title.toLowerCase();
   let location = "TOUR";
   
@@ -12,7 +17,7 @@ function parseEventName(title) {
     location = "SBY";
   } else if (t.includes("yogyakarta") || t.includes("yogya") || t.includes("jogja") || t.includes("yk")) {
     location = "YOGYA";
-  } else if (t.includes("jakarta") || t.includes("jkt")) {
+  } else if (t.includes("jakarta") || (t.includes("jkt") && !t.includes("jkt48"))) {
     location = "JKT";
   } else {
     // Coba deteksi nama kota dari kata setelah '2shot' atau 'Greet'
@@ -113,7 +118,7 @@ async function handleRequest(request, event) {
       const jenisBenefit = item.category === 'PHOTOCARD' 
         ? 'Photocard' 
         : (item.category === 'TWO_SHOT' ? '2-Shot' : 'Video Call');
-      const namaEvent = parseEventName(item.title);
+      const namaEvent = parseEventName(item.title, item.category);
       const jsonData = item.data;
 
       if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
