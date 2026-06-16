@@ -1,0 +1,13 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Wrangler / Cloudflare Workers
+.wrangler/
+.dev.vars
+
+# Local environment & OS files
+.env
+.env.local
+.DS_Store
+Thumbs.db
