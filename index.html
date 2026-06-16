@@ -4,17 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JKT48 Ticket Monitor</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Sistem pemantau otomatis tiket event JKT48 (Meet & Greet, 2-Shot, & Video Call) secara real-time.">
+    <meta name="keywords" content="jkt48, jkt48 monitor, kuota jkt48, meet & greet jkt48, 2-shot jkt48, video call jkt48">
+    <meta name="author" content="emzyjeppp">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://jkt48monitor.netlify.app/">
+    <meta property="og:title" content="JKT48 Ticket Monitor">
+    <meta property="og:description" content="Pantau sisa kuota tiket event JKT48 secara real-time dan otomatis setiap menit.">
+    <meta property="og:image" content="https://github.com/Emzyjeppp.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:url" content="https://jkt48monitor.netlify.app/">
+    <meta property="twitter:title" content="JKT48 Ticket Monitor">
+    <meta property="twitter:description" content="Pantau sisa kuota tiket event JKT48 secara real-time dan otomatis setiap menit.">
+    <meta property="twitter:image" content="https://github.com/Emzyjeppp.png">
+
     <link rel="icon" type="image/png" href="https://github.com/Emzyjeppp.png">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; }
+        body { 
+            background-color: #0f172a; 
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.06) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 50%);
+            color: #f8fafc; 
+            font-family: sans-serif; 
+            background-attachment: fixed;
+        }
     </style>
     <script src="security.js"></script>
 </head>
 <body class="p-4 md:p-8">
 
     <div class="max-w-6xl mx-auto">
-        <header class="mb-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center border-b border-slate-700 pb-4">
+        <header class="mb-4 text-center md:text-left flex flex-col md:flex-row justify-between items-center pb-4">
             <div>
                 <h1 class="text-3xl font-extrabold text-rose-500 tracking-wide flex items-center justify-center md:justify-start gap-2">
                     <img src="https://github.com/Emzyjeppp.png" class="w-8 h-8 rounded-full border border-rose-500 shadow-md" alt="Emzyjeppp Logo">
@@ -28,7 +56,12 @@
             </div>
         </header>
 
-        <section class="bg-slate-800 p-5 rounded-xl shadow-lg border border-slate-700 mb-6 space-y-4">
+        <!-- Visual Auto-Refresh Progress Bar -->
+        <div class="w-full bg-slate-800/40 h-1.5 rounded-full mb-6 overflow-hidden border border-slate-700/30">
+            <div id="refreshProgress" class="bg-gradient-to-r from-rose-500 via-purple-500 to-sky-500 h-full w-0 rounded-full"></div>
+        </div>
+
+        <section class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6 space-y-4">
             
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-rose-400 mb-2">Pilih Kategori Kebutuhan:</label>
@@ -71,7 +104,7 @@
 
             <div class="pt-2 border-t border-slate-700/50 flex flex-col sm:flex-row gap-3 justify-between items-center">
                 <div class="w-full sm:w-auto">
-                    <input type="text" id="searchFilter" oninput="filterData()" placeholder="Cari nama member atau oshi Anda..." class="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm w-full sm:w-80 focus:outline-none focus:border-rose-500 text-white">
+                    <input type="text" id="searchFilter" oninput="filterData()" placeholder="Cari nama member atau oshi Anda..." class="bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-2 text-sm w-full sm:w-80 focus:outline-none focus:border-rose-500 text-white">
                 </div>
                 <button onclick="bacaDataLokal()" class="w-full sm:w-auto text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2.5 rounded-lg transition cursor-pointer font-medium">
                     🔄 Refresh Tampilan Tabel
@@ -80,7 +113,7 @@
         </section>
 
         <!-- Bagian History / Transaksi Terkini -->
-        <section class="bg-slate-800 p-5 rounded-xl shadow-lg border border-slate-700 mb-6">
+        <section class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6">
             <h2 class="text-sm font-bold uppercase tracking-wider text-rose-400 mb-3 flex items-center gap-2">
                 ⏱️ Riwayat Sold Out Tercepat (Global)
             </h2>
@@ -90,10 +123,10 @@
         </section>
 
         <main>
-            <div class="overflow-x-auto bg-slate-800 rounded-xl shadow-lg border border-slate-700">
+            <div class="overflow-x-auto bg-slate-800/40 backdrop-blur-md rounded-xl shadow-xl border border-slate-700/50">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-700/50 text-slate-300 text-xs font-bold uppercase tracking-wider border-b border-slate-700">
+                        <tr class="bg-slate-700/30 text-slate-300 text-xs font-bold uppercase tracking-wider border-b border-slate-700/50">
                             <th class="p-4">Event / Lokasi</th>
                             <th class="p-4">Kategori</th>
                             <th class="p-4">Sesi</th>
@@ -103,7 +136,7 @@
                             <th class="p-4 text-center">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBody" class="text-sm divide-y divide-slate-700">
+                    <tbody id="tableBody" class="text-sm divide-y divide-slate-700/40">
                         <tr>
                             <td colspan="7" class="p-8 text-center text-slate-400">Sedang menyinkronkan data kuota dari repositori...</td>
                         </tr>

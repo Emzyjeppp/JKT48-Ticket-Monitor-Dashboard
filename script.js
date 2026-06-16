@@ -2,12 +2,33 @@ let semuaMasterData = [];
 let filterJenisAktif = 'SEMUA';
 let filterEventAktif = 'SEMUA';
 let urutanAktif = 'TERSEDIA';
+let fetchTimeout = null;
 
 // Ganti dengan URL Cloudflare Worker Anda setelah dideploy
 const API_URL = 'https://jkt48-monitor-api.jefryoconner49.workers.dev';
 
+// Fungsi mereset animasi bar waktu hitung mundur auto-refresh
+function resetProgressBar() {
+    const progressBar = document.getElementById('refreshProgress');
+    if (!progressBar) return;
+    
+    progressBar.style.transition = 'none';
+    progressBar.style.width = '0%';
+    
+    // Trigger reflow untuk mereset transition state browser
+    progressBar.offsetHeight;
+    
+    progressBar.style.transition = 'width 15000ms linear';
+    progressBar.style.width = '100%';
+}
+
 // Mengambil data dari berkas data.json lokal hasil generate server GitHub Actions atau Cloudflare Worker
 async function bacaDataLokal() {
+    // Reset bar visual & jadwal reload otomatis (15 detik)
+    resetProgressBar();
+    if (fetchTimeout) clearTimeout(fetchTimeout);
+    fetchTimeout = setTimeout(bacaDataLokal, 15000);
+
     const statusDiv = document.getElementById('statusFetch');
     try {
         const fetchUrl = API_URL.startsWith('http') ? API_URL : API_URL + '?_cb=' + new Date().getTime();
@@ -225,6 +246,5 @@ function renderHistory(historyList) {
 // Eksekusi pemanggilan otomatis saat halaman pertama kali dibuka
 window.onload = function() {
     bacaDataLokal();
-    setInterval(bacaDataLokal, 15000);
 };
 
