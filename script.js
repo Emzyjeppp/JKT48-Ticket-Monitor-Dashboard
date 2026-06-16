@@ -164,9 +164,9 @@ function renderTabel(data) {
         }
 
         const jenisBadge = item.jenis === 'Photocard' 
-            ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap">📸 Photocard</span>`
+            ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap">🤝 Photocard</span>`
             : (item.jenis === '2-Shot'
-               ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap">🤝 2-Shot</span>`
+               ? `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap">📸 2-Shot</span>`
                : `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/30 whitespace-nowrap">📞 Video Call</span>`);
 
         tbody.innerHTML += `
@@ -197,9 +197,9 @@ function renderHistory(historyList) {
 
         let jenisBadge = '';
         if (item.jenis === 'Photocard') {
-            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap">📸 PC</span>`;
+            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap">🤝 PC</span>`;
         } else if (item.jenis === '2-Shot') {
-            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap">🤝 2S</span>`;
+            jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap">📸 2S</span>`;
         } else {
             jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-teal-500/10 text-teal-400 border border-teal-500/30 whitespace-nowrap">📞 VC</span>`;
         }
