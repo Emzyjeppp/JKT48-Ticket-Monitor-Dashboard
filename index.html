@@ -42,15 +42,9 @@
 
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-2">Saring Berdasarkan Event & Lokasi:</label>
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="setEventFilter('SEMUA')" id="btn-evt-SEMUA" class="px-4 py-1.5 rounded-md text-xs font-bold bg-sky-600 text-white cursor-pointer transition">
+                <div class="flex flex-wrap gap-2" id="eventFilterContainer">
+                    <button onclick="setEventFilter('SEMUA')" class="px-4 py-1.5 rounded-md text-xs font-bold bg-sky-600 text-white cursor-pointer transition">
                         Semua Event
-                    </button>
-                    <button onclick="setEventFilter('LOVE & DREAM (SBY)')" id="btn-evt-LOVE & DREAM (SBY)" class="px-4 py-1.5 rounded-md text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-300 cursor-pointer transition">
-                        LOVE & DREAM (Surabaya)
-                    </button>
-                    <button onclick="setEventFilter('PASSION (YOGYA)')" id="btn-evt-PASSION (YOGYA)" class="px-4 py-1.5 rounded-md text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-300 cursor-pointer transition">
-                        PASSION (Yogyakarta)
                     </button>
                 </div>
             </div>
@@ -133,6 +127,9 @@
                 const dataJson = await response.json();
                 semuaMasterData = dataJson.data || [];
                 
+                // Render saringan event secara dinamis
+                renderEventFilterButtons(semuaMasterData);
+                
                 // Perbarui log riwayat transaksi
                 renderHistory(dataJson.history || []);
                 
@@ -173,28 +170,41 @@
         // Handler perubahan filter tombol Lokasi Surabaya / Yogyakarta
         function setEventFilter(evt) {
             filterEventAktif = evt;
+            renderEventFilterButtons(semuaMasterData);
+            filterData();
+        }
+
+        // Fungsi menggambar tombol saringan event secara dinamis
+        function renderEventFilterButtons(data) {
+            const container = document.getElementById('eventFilterContainer');
+            if (!container) return;
             
-            // Daftar nilai evt asli yang akan dicocokkan
-            const daftarEvent = ['SEMUA', 'LOVE & DREAM (SBY)', 'PASSION (YOGYA)'];
+            // Ambil daftar event unik dari data
+            const daftarEvent = [...new Set(data.map(item => item.event))];
+            
+            let html = `
+                <button onclick="setEventFilter('SEMUA')" class="px-4 py-1.5 rounded-md text-xs transition cursor-pointer ${
+                    filterEventAktif === 'SEMUA' 
+                    ? 'bg-sky-600 text-white font-bold' 
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold'
+                }">
+                    Semua Event
+                </button>
+            `;
             
             daftarEvent.forEach(e => {
-                // Trik aman: cari elemen menggunakan querySelector berdasarkan atribut onclick-nya
-                // Cara ini jauh lebih aman daripada menggunakan getElementById jika teks mengandung simbol & ()
-                const btn = document.querySelector(`button[onclick="setEventFilter('${e}')"]`);
-                
-                if (btn) {
-                    if (e === evt) {
-                        // Warna aktif jika dipilih
-                        btn.className = "px-4 py-1.5 rounded-md text-xs font-bold bg-sky-600 text-white cursor-pointer transition";
-                    } else {
-                        // Warna redup jika tidak dipilih
-                        btn.className = "px-4 py-1.5 rounded-md text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-300 cursor-pointer transition";
-                    }
-                }
+                html += `
+                    <button onclick="setEventFilter('${e}')" class="px-4 py-1.5 rounded-md text-xs transition cursor-pointer ${
+                        filterEventAktif === e 
+                        ? 'bg-sky-600 text-white font-bold' 
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold'
+                    }">
+                        ${e}
+                    </button>
+                `;
             });
             
-            // Jalankan penyaringan ulang data tabel
-            filterData();
+            container.innerHTML = html;
         }
 
         // Handler perubahan urutan tampilan

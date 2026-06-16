@@ -3,6 +3,39 @@ addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request, event))
 })
 
+// Fungsi pembantu untuk menentukan nama event & lokasi secara otomatis dari judul
+function parseEventName(title) {
+  const t = title.toLowerCase();
+  let location = "TOUR";
+  
+  if (t.includes("surabaya") || t.includes("sby")) {
+    location = "SBY";
+  } else if (t.includes("yogyakarta") || t.includes("yogya") || t.includes("jogja") || t.includes("yk")) {
+    location = "YOGYA";
+  } else if (t.includes("jakarta") || t.includes("jkt")) {
+    location = "JKT";
+  } else {
+    // Coba deteksi nama kota dari kata setelah '2shot' atau 'Greet'
+    const match = title.match(/2shot\s+([A-Za-z]+)/i) || title.match(/Greet\s+([A-Za-z]+)/i) || title.match(/and\s+Greet\s+([A-Za-z]+)/i);
+    if (match) {
+      location = match[1].toUpperCase();
+    }
+  }
+
+  let theme = "EXCLUSIVES";
+  if (t.includes("love") && t.includes("dream")) {
+    theme = "LOVE & DREAM";
+  } else if (t.includes("passion")) {
+    theme = "PASSION";
+  } else if (t.includes("love")) {
+    theme = "LOVE";
+  } else if (t.includes("dream")) {
+    theme = "DREAM";
+  }
+
+  return `${theme} (${location})`;
+}
+
 async function handleRequest(request, event) {
   const cacheUrl = new URL(request.url)
   const cacheKey = new Request(cacheUrl.toString(), request)
@@ -43,18 +76,44 @@ async function handleRequest(request, event) {
       return res.json();
     }
 
-    // 1. Ambil data langsung dari API JKT48 secara paralel
-    const [pcSby, pcYogya, shotSby, shotYogya] = await Promise.all([
-      fetchJson("https://jkt48.com/api/v1/exclusives/EX9A4A/bonus?lang=id"),
-      fetchJson("https://jkt48.com/api/v1/exclusives/EXCB75/bonus?lang=id"),
-      fetchJson("https://jkt48.com/api/v1/exclusives/EX3773/bonus?lang=id"),
-      fetchJson("https://jkt48.com/api/v1/exclusives/EXCD2C/bonus?lang=id")
-    ])
+    // 1. Ambil daftar eksklusif aktif dari API JKT48
+    const listRes = await fetchJson("https://jkt48.com/api/v1/exclusives?lang=id");
+    const exclusives = listRes.data || [];
+
+    // Filter hanya kategori PHOTOCARD dan TWO_SHOT yang dirilis kurang dari 30 hari lalu (untuk menyembunyikan event masa lalu)
+    const activeExclusives = exclusives.filter(item => {
+      if (item.category !== "PHOTOCARD" && item.category !== "TWO_SHOT") return false;
+      const releaseDate = new Date(item.valid_date_from);
+      const ageInDays = (new Date() - releaseDate) / (1000 * 60 * 60 * 24);
+      return ageInDays < 30; // Hanya ambil yang berusia kurang dari 30 hari
+    });
+
+    // 2. Ambil data detail (bonus/tiket) secara paralel untuk setiap eksklusif yang aktif
+    const detailPromises = activeExclusives.map(async (item) => {
+      try {
+        const detailData = await fetchJson(`https://jkt48.com/api/v1/exclusives/${item.code}/bonus?lang=id`);
+        return {
+          code: item.code,
+          category: item.category,
+          title: item.title,
+          data: detailData
+        };
+      } catch (err) {
+        console.error(`Gagal fetch detail untuk ${item.code}:`, err.message);
+        return null;
+      }
+    });
+
+    const details = (await Promise.all(detailPromises)).filter(d => d !== null);
 
     let output = []
 
-    // Fungsi parsing data terstruktur
-    function parseData(jsonData, jenisBenefit, namaEvent) {
+    // 3. Parsing data terstruktur dari setiap eksklusif
+    details.forEach(item => {
+      const jenisBenefit = item.category === 'PHOTOCARD' ? 'Photocard' : '2-Shot';
+      const namaEvent = parseEventName(item.title);
+      const jsonData = item.data;
+
       if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
         jsonData.data.forEach(sesi => {
           const labelSesi = sesi.label || 'Sesi'
@@ -75,14 +134,9 @@ async function handleRequest(request, event) {
           }
         })
       }
-    }
+    });
 
-    parseData(pcSby, 'Photocard', 'LOVE & DREAM (SBY)')
-    parseData(pcYogya, 'Photocard', 'PASSION (YOGYA)')
-    parseData(shotSby, '2-Shot', 'LOVE & DREAM (SBY)')
-    parseData(shotYogya, '2-Shot', 'PASSION (YOGYA)')
-
-    // 2. Deteksi Transaksi & Urutan Sold Out Tercepat (jika database JKT48_DB terhubung)
+    // 4. Deteksi Transaksi & Urutan Sold Out Tercepat (jika database JKT48_DB terhubung)
     let history = [];
     if (typeof JKT48_DB !== 'undefined') {
       try {
