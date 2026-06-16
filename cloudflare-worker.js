@@ -83,8 +83,12 @@ async function handleRequest(request, event) {
     parseData(shotSby, '2-Shot', 'LOVE & DREAM (SBY)')
     parseData(shotYogya, '2-Shot', 'PASSION (YOGYA)')
 
-    // Urutkan kuota tiket paling menipis ke paling atas
-    output.sort((a, b) => a.sisa - b.sisa)
+    // Urutkan kuota tiket: sisa > 0 (menipis ke atas) di paling atas, dan sisa = 0 (SOLD OUT) di paling bawah
+    output.sort((a, b) => {
+      if (a.sisa === 0 && b.sisa !== 0) return 1;
+      if (a.sisa !== 0 && b.sisa === 0) return -1;
+      return a.sisa - b.sisa;
+    })
 
     // Format Waktu WIB
     const formatter = new Intl.DateTimeFormat('id-ID', {
