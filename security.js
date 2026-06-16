@@ -1,3 +1,13 @@
+// 1. Tantangan Keamanan Halaman (Gatekeeper Prompt)
+if (!window.location.hostname.includes('localhost') && !window.location.protocol.includes('file')) {
+    const jawaban = prompt("Pertanyaan Keamanan: Siapa oshi emzyjeppp?");
+    if (!jawaban || jawaban.trim().toLowerCase() !== "lana") {
+        alert("Jawaban salah atau dibatalkan! Akses ditolak. 😉");
+        window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=8EuZqnNVZrtZ1Q_h";
+        throw new Error("Akses ditolak: Jawaban salah.");
+    }
+}
+
 // Proteksi Anti-F12 / Inspect Element
 if (!window.location.hostname.includes('localhost') && !window.location.protocol.includes('file')) {
     // 1. Blokir Klik Kanan + Peringatan + Rickroll
