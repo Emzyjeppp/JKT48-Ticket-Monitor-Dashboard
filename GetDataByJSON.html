@@ -29,7 +29,7 @@
                     ⚡ Proses & Urutkan Data
                 </button>
                 
-                <input type="text" id="searchFilter" oninput="filterData()" placeholder="Cari nama member atau kategori tiket..." class="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:border-rose-500 hidden">
+                <input type="text" id="searchFilter" oninput="filterData()" placeholder="Cari nama member, kategori, atau tanggal..." class="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:border-rose-500 hidden">
             </div>
         </section>
 
@@ -56,6 +56,20 @@
     <script>
         let semuaMasterData = [];
         let dataType = 'EXCLUSIVES'; // 'EXCLUSIVES' atau 'THEATER'
+
+        // Format waktu ISO ke format lokal Indonesia + WIB (Contoh: 17 Jun 2026, 12:00 WIB)
+        function formatWIB(isoString) {
+            const d = new Date(isoString);
+            if (isNaN(d.getTime())) return '-';
+            
+            const tanggal = d.getDate();
+            const bulan = d.toLocaleDateString('id-ID', { month: 'short' });
+            const tahun = d.getFullYear();
+            const jam = String(d.getHours()).padStart(2, '0');
+            const menit = String(d.getMinutes()).padStart(2, '0');
+            
+            return `${tanggal} ${bulan} ${tahun}, ${jam}:${menit} WIB`;
+        }
 
         function prosesDump() {
             const rawText = document.getElementById('jsonInput').value.trim();
@@ -135,7 +149,10 @@
                 const end = new Date(period.end_date);
                 const now = new Date();
 
-                // Deteksi status ketersediaan tiket
+                // Format waktu periode penjualan lengkap
+                const salesPeriodText = `${formatWIB(period.start_date)} - ${formatWIB(period.end_date)}`;
+
+                // Deteksi status ketersediaan tiket berdasarkan waktu aktif & status umum
                 let statusText = 'Tersedia';
                 if (!showStatus) {
                     statusText = 'SOLD OUT';
@@ -151,6 +168,7 @@
                         showTitle: title,
                         dateTime: `${dateFormatted} @ ${time}`,
                         category: `${periodLabel} - ${price.label}`,
+                        salesPeriod: salesPeriodText,
                         quota: price.quota || 0,
                         method: method,
                         price: price.price || 0,
@@ -176,8 +194,9 @@
             if (type === 'THEATER') {
                 theadRow.innerHTML = `
                     <th class="p-4">Show / Setlist</th>
-                    <th class="p-4">Tanggal & Jam</th>
+                    <th class="p-4">Tanggal & Jam Show</th>
                     <th class="p-4">Kategori Tiket</th>
+                    <th class="p-4 text-center">Periode Penjualan</th>
                     <th class="p-4 text-center">Kuota Awal</th>
                     <th class="p-4 text-center">Metode</th>
                     <th class="p-4 text-center">Status</th>
@@ -199,8 +218,10 @@
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
+            const colCount = dataType === 'THEATER' ? 7 : 6;
+
             if(data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500">Tidak ada data yang cocok.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${colCount}" class="p-8 text-center text-slate-500">Tidak ada data yang cocok.</td></tr>`;
                 return;
             }
 
@@ -223,6 +244,7 @@
                             <td class="p-4 font-bold text-slate-200">${item.showTitle}</td>
                             <td class="p-4 text-slate-300 text-xs font-medium">${item.dateTime}</td>
                             <td class="p-4 text-slate-400 text-xs">${item.category} (Rp ${item.price.toLocaleString('id-ID')})</td>
+                            <td class="p-4 text-slate-300 text-xs font-mono text-center">${item.salesPeriod}</td>
                             <td class="p-4 text-center font-mono font-semibold">${item.quota}</td>
                             <td class="p-4 text-center font-mono text-xs font-semibold text-sky-400">${item.method}</td>
                             <td class="p-4 text-center">${statusBadge}</td>
@@ -263,7 +285,8 @@
             if (dataType === 'THEATER') {
                 hasilFilter = semuaMasterData.filter(item => 
                     item.showTitle.toLowerCase().includes(keyword) || 
-                    item.category.toLowerCase().includes(keyword)
+                    item.category.toLowerCase().includes(keyword) ||
+                    item.salesPeriod.toLowerCase().includes(keyword)
                 );
             } else {
                 hasilFilter = semuaMasterData.filter(item => 
