@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JKT48 Ticket Monitor Dashboard</title>
+    <title>JKT48 Ticket & Theater Monitor Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; }
@@ -14,22 +14,22 @@
     <div class="max-w-6xl mx-auto">
         <header class="mb-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center border-b border-slate-700 pb-4">
             <div>
-                <h1 class="text-3xl font-extrabold text-rose-500 tracking-wide">🔴 JKT48 TICKET MONITOR</h1>
-                <p class="text-slate-400 text-sm mt-1">Pantau kuota tiket event JKT48 secara cepat lewat Dump JSON</p>
+                <h1 class="text-3xl font-extrabold text-rose-500 tracking-wide">🔴 JKT48 TICKET & THEATER MONITOR</h1>
+                <p class="text-slate-400 text-sm mt-1">Pantau kuota tiket event & status sold out tiket theater JKT48 lewat Dump JSON</p>
             </div>
             <div id="lastUpdate" class="text-slate-400 text-xs mt-2 md:mt-0"></div>
         </header>
 
         <section class="bg-slate-800 p-5 rounded-xl shadow-lg border border-slate-700 mb-8">
-            <label class="block text-sm font-semibold mb-2 text-rose-400">Tempel (Paste) Response JSON dari Network Tab di sini:</label>
-            <textarea id="jsonInput" rows="4" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm font-mono text-green-400 focus:outline-none focus:border-rose-500" placeholder='{"status": true, "data": [...]}'></textarea>
+            <label class="block text-sm font-semibold mb-2 text-rose-400">Tempel (Paste) Response JSON dari Network Tab di sini (Mendukung Event & Theater):</label>
+            <textarea id="jsonInput" rows="4" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm font-mono text-green-400 focus:outline-none focus:border-rose-500" placeholder='{"status": true, "data": [...]} atau JSON Detail Show Theater...'></textarea>
             
             <div class="mt-4 flex flex-wrap gap-3 justify-between items-center">
                 <button onclick="prosesDump()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-6 rounded-lg shadow transition cursor-pointer text-sm">
                     ⚡ Proses & Urutkan Data
                 </button>
                 
-                <input type="text" id="searchFilter" oninput="filterData()" placeholder="Cari nama member (misal: Kathrina)..." class="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:border-rose-500 hidden">
+                <input type="text" id="searchFilter" oninput="filterData()" placeholder="Cari nama member atau kategori tiket..." class="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:border-rose-500 hidden">
             </div>
         </section>
 
@@ -47,7 +47,7 @@
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="text-sm divide-y divide-slate-700">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </main>
@@ -55,6 +55,7 @@
 
     <script>
         let semuaMasterData = [];
+        let dataType = 'EXCLUSIVES'; // 'EXCLUSIVES' atau 'THEATER'
 
         function prosesDump() {
             const rawText = document.getElementById('jsonInput').value.trim();
@@ -65,80 +66,191 @@
 
             try {
                 const parsed = JSON.parse(rawText);
-                const dataSesi = parsed.data || parsed;
+                const showData = parsed.data || parsed;
                 
-                if(!Array.isArray(dataSesi)) {
-                    alert('Struktur JSON tidak dikenali sebagai format JKT48.');
-                    return;
+                // Deteksi format: Theater Show memiliki properti unique seperti theater_show_id atau sales_period
+                if (showData && (showData.theater_show_id || showData.sales_period || showData.set_list)) {
+                    dataType = 'THEATER';
+                    prosesTheater(showData);
+                } else {
+                    dataType = 'EXCLUSIVES';
+                    prosesExclusives(showData);
                 }
-
-                semuaMasterData = []; // Reset data lama
-
-                // Unpack data dari JSON ke flat array
-                dataSesi.forEach(sesi => {
-                    const labelSesi = sesi.label || 'Sesi';
-                    const sesiSingkat = labelSesi.split('·')[0].trim();
-
-                    if(sesi.session_members && Array.isArray(sesi.session_members)) {
-                        sesi.session_members.forEach(m => {
-                            semuaMasterData.push({
-                                sesi: sesiSingkat,
-                                jalur: m.label || '-',
-                                nama: m.member_name,
-                                terjual: m.tickets_sold,
-                                sisa: m.quota
-                            });
-                        });
-                    }
-                });
-
-                // Urutkan default: Sisa tiket paling sedikit berada di atas (Biar tahu siapa yang mau sold out)
-                semuaMasterData.sort((a, b) => a.sisa - b.sisa);
 
                 // Tampilkan elemen dashboard & live search
                 document.getElementById('dashboardSection').classList.remove('hidden');
                 document.getElementById('searchFilter').classList.remove('hidden');
                 document.getElementById('lastUpdate').innerText = `Terakhir Update: ${new Date().toLocaleTimeString('id-ID')} WIB`;
 
-                renderTabel(semuaMasterData);
-
             } catch (error) {
                 alert('Gagal membaca JSON. Pastikan seluruh teks tercopy dengan sempurna ya!\nError: ' + error.message);
             }
         }
 
+        // 1. Parser khusus format Exclusives (Meet & Greet, 2-Shot, Video Call)
+        function prosesExclusives(dataSesi) {
+            const sessionsArray = Array.isArray(dataSesi) ? dataSesi : [dataSesi];
+            semuaMasterData = []; // Reset data lama
+
+            sessionsArray.forEach(sesi => {
+                const labelSesi = sesi.label || 'Sesi';
+                const sesiSingkat = labelSesi.split('·')[0].trim();
+
+                if(sesi.session_members && Array.isArray(sesi.session_members)) {
+                    sesi.session_members.forEach(m => {
+                        semuaMasterData.push({
+                            sesi: sesiSingkat,
+                            jalur: m.label || '-',
+                            nama: m.member_name,
+                            terjual: m.tickets_sold,
+                            sisa: m.quota
+                        });
+                    });
+                }
+            });
+
+            // Urutkan default: Sisa kuota terkecil di atas
+            semuaMasterData.sort((a, b) => a.sisa - b.sisa);
+
+            updateTableHeaders('EXCLUSIVES');
+            renderTabel(semuaMasterData);
+        }
+
+        // 2. Parser khusus format Detail Show Theater (Deteksi status SOLD OUT berdasarkan tanggal dan status show)
+        function prosesTheater(show) {
+            semuaMasterData = []; // Reset data lama
+
+            const title = show.title || 'Theater Show';
+            const dateFormatted = new Date(show.date).toLocaleDateString('id-ID', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+            const time = show.start_time || '19:00';
+            const showStatus = show.status; // boolean (true = active, false = closed/soldout)
+
+            const sales = show.sales_period || [];
+            sales.forEach(period => {
+                const periodLabel = period.label || 'Ticket';
+                const method = period.sales_method || 'FCFS';
+                const start = new Date(period.start_date);
+                const end = new Date(period.end_date);
+                const now = new Date();
+
+                // Deteksi status ketersediaan tiket
+                let statusText = 'Tersedia';
+                if (!showStatus) {
+                    statusText = 'SOLD OUT';
+                } else if (now < start) {
+                    statusText = 'Belum Dibuka';
+                } else if (now > end) {
+                    statusText = 'SOLD OUT / TUTUP'; // Jika sudah lewat batas tanggal, otomatis sold out/tutup
+                }
+
+                const pricingList = period.pricing || [];
+                pricingList.forEach(price => {
+                    semuaMasterData.push({
+                        showTitle: title,
+                        dateTime: `${dateFormatted} @ ${time}`,
+                        category: `${periodLabel} - ${price.label}`,
+                        quota: price.quota || 0,
+                        method: method,
+                        price: price.price || 0,
+                        status: statusText
+                    });
+                });
+            });
+
+            // Urutkan default: Yang statusnya 'Tersedia' ditaruh di atas
+            semuaMasterData.sort((a, b) => {
+                if (a.status === 'Tersedia' && b.status !== 'Tersedia') return -1;
+                if (a.status !== 'Tersedia' && b.status === 'Tersedia') return 1;
+                return 0;
+            });
+
+            updateTableHeaders('THEATER');
+            renderTabel(semuaMasterData);
+        }
+
+        // Fungsi memperbarui header kolom tabel secara dinamis
+        function updateTableHeaders(type) {
+            const theadRow = document.querySelector('thead tr');
+            if (type === 'THEATER') {
+                theadRow.innerHTML = `
+                    <th class="p-4">Show / Setlist</th>
+                    <th class="p-4">Tanggal & Jam</th>
+                    <th class="p-4">Kategori Tiket</th>
+                    <th class="p-4 text-center">Kuota Awal</th>
+                    <th class="p-4 text-center">Metode</th>
+                    <th class="p-4 text-center">Status</th>
+                `;
+            } else {
+                theadRow.innerHTML = `
+                    <th class="p-4">Sesi / Event</th>
+                    <th class="p-4">Jalur</th>
+                    <th class="p-4 text-rose-300">Nama Member</th>
+                    <th class="p-4 text-center">Tiket Terjual</th>
+                    <th class="p-4 text-center">Sisa Stok</th>
+                    <th class="p-4 text-center">Status</th>
+                `;
+            }
+        }
+
+        // Fungsi menggambar data baris tabel
         function renderTabel(data) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
             if(data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500">Tidak ada data member yang cocok.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500">Tidak ada data yang cocok.</td></tr>`;
                 return;
             }
 
             data.forEach(item => {
-                // Penentuan badge status kuota
-                let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400">Tersedia</span>`;
-                let rowBg = "hover:bg-slate-700/30 transition";
+                let row = '';
+                if (dataType === 'THEATER') {
+                    let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400 whitespace-nowrap">Tersedia</span>`;
+                    let rowBg = "hover:bg-slate-700/30 transition";
 
-                if (item.sisa === 0) {
-                    statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-rose-500/20 text-rose-400">SOLD OUT</span>`;
-                    rowBg = "bg-rose-950/10 text-slate-500 hover:bg-rose-950/20";
-                } else if (item.sisa <= 5) {
-                    statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-amber-500/20 text-amber-400 animate-pulse">Menipis</span>`;
-                    rowBg = "bg-amber-950/10 hover:bg-amber-950/20 text-amber-100";
+                    if (item.status.includes('SOLD OUT') || item.status.includes('TUTUP')) {
+                        statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-rose-500/20 text-rose-400 whitespace-nowrap">${item.status}</span>`;
+                        rowBg = "bg-rose-950/10 text-slate-500 hover:bg-rose-950/20";
+                    } else if (item.status === 'Belum Dibuka') {
+                        statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-amber-500/20 text-amber-400 whitespace-nowrap">${item.status}</span>`;
+                        rowBg = "bg-amber-950/10 text-slate-400";
+                    }
+
+                    row = `
+                        <tr class="${rowBg}">
+                            <td class="p-4 font-bold text-slate-200">${item.showTitle}</td>
+                            <td class="p-4 text-slate-300 text-xs font-medium">${item.dateTime}</td>
+                            <td class="p-4 text-slate-400 text-xs">${item.category} (Rp ${item.price.toLocaleString('id-ID')})</td>
+                            <td class="p-4 text-center font-mono font-semibold">${item.quota}</td>
+                            <td class="p-4 text-center font-mono text-xs font-semibold text-sky-400">${item.method}</td>
+                            <td class="p-4 text-center">${statusBadge}</td>
+                        </tr>
+                    `;
+                } else {
+                    let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400 whitespace-nowrap">Tersedia</span>`;
+                    let rowBg = "hover:bg-slate-700/30 transition";
+
+                    if (item.sisa === 0) {
+                        statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-rose-500/20 text-rose-400 whitespace-nowrap">SOLD OUT</span>`;
+                        rowBg = "bg-rose-950/10 text-slate-500 hover:bg-rose-950/20";
+                    } else if (item.sisa <= 5) {
+                        statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-amber-500/20 text-amber-400 animate-pulse whitespace-nowrap">Menipis</span>`;
+                        rowBg = "bg-amber-950/10 hover:bg-amber-950/20 text-amber-100";
+                    }
+
+                    row = `
+                        <tr class="${rowBg}">
+                            <td class="p-4 font-medium text-slate-300">${item.sesi}</td>
+                            <td class="p-4 text-slate-400 text-xs">${item.jalur}</td>
+                            <td class="p-4 font-bold text-slate-200">${item.nama}</td>
+                            <td class="p-4 text-center font-mono font-semibold">${item.terjual}</td>
+                            <td class="p-4 text-center font-mono font-bold text-emerald-400">${item.sisa}</td>
+                            <td class="p-4 text-center">${statusBadge}</td>
+                        </tr>
+                    `;
                 }
-
-                const row = `
-                    <tr class="${rowBg}">
-                        <td class="p-4 font-medium text-slate-300">${item.sesi}</td>
-                        <td class="p-4 text-slate-400 text-xs">${item.jalur}</td>
-                        <td class="p-4 font-bold text-slate-200">${item.nama}</td>
-                        <td class="p-4 text-center font-mono font-semibold">${item.terjual}</td>
-                        <td class="p-4 text-center font-mono font-bold text-emerald-400">${item.sisa}</td>
-                        <td class="p-4 text-center">${statusBadge}</td>
-                    </tr>
-                `;
                 tbody.innerHTML += row;
             });
         }
@@ -146,10 +258,19 @@
         // Fitur Live Search Real-time tanpa klik tombol lagi
         function filterData() {
             const keyword = document.getElementById('searchFilter').value.toLowerCase();
-            const hasilFilter = semuaMasterData.filter(item => 
-                item.nama.toLowerCase().includes(keyword) || 
-                item.sesi.toLowerCase().includes(keyword)
-            );
+            let hasilFilter = [];
+            
+            if (dataType === 'THEATER') {
+                hasilFilter = semuaMasterData.filter(item => 
+                    item.showTitle.toLowerCase().includes(keyword) || 
+                    item.category.toLowerCase().includes(keyword)
+                );
+            } else {
+                hasilFilter = semuaMasterData.filter(item => 
+                    item.nama.toLowerCase().includes(keyword) || 
+                    item.sesi.toLowerCase().includes(keyword)
+                );
+            }
             renderTabel(hasilFilter);
         }
     </script>
