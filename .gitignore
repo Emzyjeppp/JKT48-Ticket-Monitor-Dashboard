@@ -11,3 +11,7 @@ npm-debug.log*
 .env.local
 .DS_Store
 Thumbs.db
+
+# Agents & Skills
+.agents/
+skills-lock.json
