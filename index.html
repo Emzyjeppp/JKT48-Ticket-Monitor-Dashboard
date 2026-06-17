@@ -80,8 +80,8 @@
             <!-- Bento Grid Menu -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                 
-                <!-- Card 1: Exclusives Monitor (md:col-span-2) -->
-                <div onclick="navigateTo('exclusives')" class="md:col-span-2 rounded-2xl shadow-xl hover:shadow-rose-500/10 border border-slate-700/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between min-h-[220px] group relative overflow-hidden" style="background-image: url('assets/jkt48_handshake_event.png'); background-size: cover; background-position: center;">
+                <!-- Card 1: Exclusives Monitor -->
+                <div onclick="navigateTo('exclusives')" class="rounded-2xl shadow-xl hover:shadow-rose-500/10 border border-slate-700/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between min-h-[240px] group relative overflow-hidden" style="background-image: url('assets/jkt48_handshake_event.png'); background-size: cover; background-position: center;">
                     <div class="absolute inset-0 bg-slate-950/75 group-hover:bg-slate-950/65 transition-all duration-500 rounded-2xl z-0"></div>
                     
                     <div class="z-10 p-6">
@@ -89,7 +89,7 @@
                             🤝
                         </div>
                         <h2 class="text-xl font-bold text-rose-400 mb-2">Tiket Event Exclusives</h2>
-                        <p class="text-slate-300 text-xs leading-relaxed max-w-xl">Pantau secara otomatis & real-time kuota sisa tiket <strong>Meet & Greet, 2-Shot, dan Video Call</strong> per member oshi JKT48. Sistem melakukan auto-refresh berkala setiap 15 detik agar Anda tidak tertinggal info tiket menipis.</p>
+                        <p class="text-slate-300 text-xs leading-relaxed">Pantau secara otomatis & real-time kuota sisa tiket Meet & Greet, 2-Shot, dan Video Call per member oshi JKT48.</p>
                     </div>
                     
                     <div class="z-10 px-6 pb-6 flex justify-between items-center text-rose-400 text-xs font-bold">
@@ -98,8 +98,8 @@
                     </div>
                 </div>
 
-                <!-- Card 2: Theater Live Monitor (md:col-span-1, with background stage image) -->
-                <div onclick="navigateTo('theater')" class="rounded-2xl shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 hover:shadow-sky-500/10 border border-slate-700/50 flex flex-col justify-between min-h-[220px] group relative overflow-hidden" style="background-image: url('assets/jkt48_theater_stage.png'); background-size: cover; background-position: center;">
+                <!-- Card 2: Theater Live Monitor -->
+                <div onclick="navigateTo('theater')" class="rounded-2xl shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 hover:shadow-sky-500/10 border border-slate-700/50 flex flex-col justify-between min-h-[240px] group relative overflow-hidden" style="background-image: url('assets/jkt48_theater_stage.png'); background-size: cover; background-position: center;">
                     <div class="absolute inset-0 bg-slate-950/75 group-hover:bg-slate-950/65 transition-all duration-500 rounded-2xl z-0"></div>
                     
                     <div class="z-10 p-6">
@@ -115,8 +115,8 @@
                     </div>
                 </div>
 
-                <!-- Card 3: JSON Reader (md:col-span-1) -->
-                <div onclick="navigateTo('jsonReader')" class="rounded-2xl shadow-xl hover:shadow-purple-500/10 border border-slate-700/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between min-h-[220px] group relative overflow-hidden" style="background-image: url('assets/jkt48_cyber_code.png'); background-size: cover; background-position: center;">
+                <!-- Card 3: JSON Reader -->
+                <div onclick="navigateTo('jsonReader')" class="rounded-2xl shadow-xl hover:shadow-purple-500/10 border border-slate-700/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between min-h-[240px] group relative overflow-hidden" style="background-image: url('assets/jkt48_cyber_code.png'); background-size: cover; background-position: center;">
                     <div class="absolute inset-0 bg-slate-950/75 group-hover:bg-slate-950/65 transition-all duration-500 rounded-2xl z-0"></div>
                     
                     <div class="z-10 p-6">
@@ -135,37 +135,6 @@
                     
                     <div class="z-10 px-6 pb-6 text-purple-400 text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition duration-300">
                         Buka Pembaca ➔
-                    </div>
-                </div>
-
-                <!-- Card 4: Quick Statistics & App Status (md:col-span-2) -->
-                <div class="md:col-span-2 bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[220px] relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-sky-500/5 rounded-full blur-3xl"></div>
-                    
-                    <div>
-                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-2xl mb-4">
-                            📊
-                        </div>
-                        <h2 class="text-xl font-bold text-emerald-400 mb-2">Statistik Monitor JKT48</h2>
-                        <p class="text-slate-300 text-xs leading-relaxed max-w-xl">Ringkasan status sinkronisasi sistem pemantau. Data diambil dari Cloudflare Worker API dan di-cache secara aman untuk performa render optimal.</p>
-                    </div>
-                    
-                    <!-- Grid stats inside bento cell -->
-                    <div class="grid grid-cols-3 gap-4 mt-4 border-t border-slate-700/40 pt-4 text-left">
-                        <div>
-                            <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Status API</div>
-                            <div class="text-sm font-black text-emerald-400 mt-0.5 flex items-center gap-1.5">
-                                <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span> Sinkron
-                            </div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Total Oshi</div>
-                            <div id="bentoOshiCount" class="text-sm font-black text-slate-200 mt-0.5">0 Member</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Interval Auto</div>
-                            <div class="text-sm font-black text-sky-400 mt-0.5">15 Detik</div>
-                        </div>
                     </div>
                 </div>
 
@@ -410,6 +379,21 @@
                 </div>
             </main>
         </div>
+
+        <!-- Global Status & Statistics Bar -->
+        <section class="mt-12 border-t border-slate-800/60 pt-6">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+                <div class="flex items-center gap-2 select-none">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <span class="font-semibold text-slate-400">Status API Gateway: Sinkron</span>
+                </div>
+                <div class="flex flex-wrap gap-x-6 gap-y-2 justify-center sm:justify-end">
+                    <span>Oshi Dipin: <strong id="bentoOshiCount" class="text-rose-400 font-bold">0 Member</strong></span>
+                    <span>Interval Cek: <strong class="text-slate-400 font-bold">15 Detik</strong></span>
+                    <span>Protokol: <strong class="text-slate-400 font-bold">Cloudflare API</strong></span>
+                </div>
+            </div>
+        </section>
 
     </div>
 
