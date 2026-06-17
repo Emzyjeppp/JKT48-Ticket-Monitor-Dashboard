@@ -107,6 +107,30 @@ async function handleRequest(request, event) {
       }
     }
 
+    // 1b. Rute proxy daftar schedule: /api/schedules?month=X&year=Y
+    if (cacheUrl.pathname === '/api/schedules') {
+      const dateJakarta = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
+      const defaultMonth = dateJakarta.getMonth() + 1;
+      const defaultYear = dateJakarta.getFullYear();
+      const month = cacheUrl.searchParams.get("month") || defaultMonth;
+      const year = cacheUrl.searchParams.get("year") || defaultYear;
+      try {
+        const scheduleData = await fetchJson(`https://jkt48.com/api/v1/schedules?month=${month}&year=${year}&lang=id`);
+        return new Response(JSON.stringify(scheduleData), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=60'
+          }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+    }
+
     // 2. Ambil daftar eksklusif aktif dari API JKT48
     const listRes = await fetchJson("https://jkt48.com/api/v1/exclusives?lang=id");
     const exclusives = listRes.data || [];

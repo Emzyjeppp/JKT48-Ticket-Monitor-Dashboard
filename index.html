@@ -235,19 +235,55 @@
                 </div>
             </header>
 
-            <!-- Show Code Input Controls -->
+            <!-- Schedule Selector Section -->
             <section class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6">
+                <!-- Dropdowns and Title Header -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                    <div>
+                        <h2 class="text-sm font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                            📅 Jadwal Pertunjukan Theater
+                        </h2>
+                        <p class="text-slate-400 text-[11px] mt-0.5">Pilih salah satu pertunjukan di bawah untuk memantau tiket & member tampil</p>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <select id="theaterMonthSelect" onchange="gantiBulanTheater()" class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500 w-1/2 sm:w-32 cursor-pointer font-medium">
+                        </select>
+                        <select id="theaterYearSelect" onchange="gantiBulanTheater()" class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500 w-1/2 sm:w-24 cursor-pointer font-medium">
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Horizontal scrollable shows container -->
+                <div class="relative">
+                    <div id="theaterShowsContainer" class="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent min-h-[90px] items-center">
+                        <div class="text-slate-400 text-xs py-2 italic text-center w-full">Memuat jadwal pertunjukan...</div>
+                    </div>
+                </div>
+
+                <!-- Secondary actions (Collapsible Manual Input & Member Button) -->
+                <div class="pt-4 border-t border-slate-700/50 flex flex-wrap gap-3 justify-between items-center text-xs">
+                    <div class="flex gap-2">
+                        <button id="btnLihatMember" onclick="bukaModalMember()" class="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 font-bold py-2 px-4 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                            👥 Lihat Member Tampil
+                        </button>
+                        <button onclick="toggleManualInput()" class="bg-slate-700/40 hover:bg-slate-700/60 text-slate-300 border border-slate-700 font-medium py-2 px-3 rounded-lg transition cursor-pointer flex items-center gap-1">
+                            ⚙️ Input Kode Manual
+                        </button>
+                    </div>
+                    <div id="theaterSelectedShowCode" class="text-slate-500 font-mono text-[10px]">Code: -</div>
+                </div>
+            </section>
+
+            <!-- Collapsible Show Code Input (Hidden by default) -->
+            <section id="manualInputSection" class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6 hidden">
                 <div class="flex flex-col md:flex-row gap-4 items-end">
                     <div class="w-full md:w-1/2">
                         <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-2">Masukkan Kode Show Theater (Show Code):</label>
                         <input type="text" id="theaterCodeInput" placeholder="Contoh: SHEB90 (Lihat URL detail show di website JKT48)" class="bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 text-sm w-full focus:outline-none focus:border-sky-500 text-white font-mono uppercase">
                     </div>
-                    <button onclick="muatKuotaTheater()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-6 rounded-lg shadow transition cursor-pointer text-sm w-full md:w-auto">
+                    <button onclick="muatKuotaTheaterDariInput()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-6 rounded-lg shadow transition cursor-pointer text-sm w-full md:w-auto">
                         ⚡ Periksa Kuota Show
                     </button>
-                </div>
-                <div class="text-xs text-slate-400 mt-2">
-                    💡 <strong>Tips:</strong> Anda bisa mendapatkan Show Code dari URL halaman detail tiket theater di website resmi. Contoh: <code>https://jkt48.com/theater/schedule/id/3178?code=SHEB90</code>, kodenya adalah <strong>SHEB90</strong>.
                 </div>
             </section>
 
@@ -331,6 +367,47 @@
             Pernyataan Penyangkalan (Disclaimer): Situs pemantau ini merupakan proyek independen buatan penggemar (fan-made) untuk keperluan analisis pribadi dan tidak memiliki hubungan kerja sama, afiliasi, atau disponsori secara resmi oleh pihak JKT48 Operational (JOT).
         </p>
     </footer>
+
+    <!-- ================= MEMBER DETAIL MODAL ================= -->
+    <div id="memberModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+        <!-- Modal Content Container -->
+        <div class="bg-slate-900 border border-slate-700/60 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-sky-600 to-indigo-600 p-4 text-white flex justify-between items-center">
+                <div>
+                    <h3 id="modalShowTitle" class="font-extrabold text-base tracking-wide truncate">Detail Member Tampil</h3>
+                    <p id="modalShowDate" class="text-[11px] text-sky-200 mt-0.5 font-medium"></p>
+                </div>
+                <button onclick="tutupModalMember()" class="text-white hover:text-slate-200 text-2xl font-bold cursor-pointer leading-none p-1 focus:outline-none select-none">
+                    &times;
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6">
+                <!-- Birthday Banner if applicable -->
+                <div id="modalBirthdayBanner" class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4 text-amber-400 text-xs font-bold flex items-center gap-2 hidden">
+                    🎂 Birthday Show: <span id="modalBirthdayName" class="text-white"></span>
+                </div>
+
+                <div class="text-xs font-bold uppercase tracking-wider text-sky-400 mb-3">
+                    👥 Member yang Berpartisipasi (<span id="modalMemberCount">0</span>):
+                </div>
+
+                <!-- Grid of Members -->
+                <div id="modalMembersGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-1">
+                    <!-- Dynamic Member Badges -->
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-slate-800/40 p-4 border-t border-slate-700/50 flex justify-end">
+                <button onclick="tutupModalMember()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-5 py-2 rounded-xl text-xs font-bold transition cursor-pointer">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- load app script -->
     <script src="script.js"></script>

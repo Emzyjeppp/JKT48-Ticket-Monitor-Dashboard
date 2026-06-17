@@ -40,6 +40,7 @@ function navigateTo(view) {
     } else if (view === 'theater') {
         document.getElementById('theaterView').classList.remove('hidden');
         document.title = "JKT48 Theater Ticket Monitor";
+        inisialisasiJadwalTheater();
     } else if (view === 'jsonReader') {
         document.getElementById('jsonReaderView').classList.remove('hidden');
         document.title = "JKT48 Dump JSON Parser";
@@ -324,14 +325,236 @@ function renderHistory(historyList) {
 // ==========================================
 // HALAMAN 2: LIVE MONITOR TICKET THEATER
 // ==========================================
-async function muatKuotaTheater() {
-    const codeInput = document.getElementById('theaterCodeInput').value.trim().toUpperCase();
+let semuaTheaterShows = [];
+let activeTheaterShowCode = null;
+let activeTheaterMembers = [];
+let activeTheaterBirthdayName = [];
+let activeTheaterShowTitle = "";
+let activeTheaterShowDate = "";
+
+function inisialisasiJadwalTheater() {
+    const monthSelect = document.getElementById('theaterMonthSelect');
+    const yearSelect = document.getElementById('theaterYearSelect');
+    
+    if (monthSelect.children.length === 0) {
+        // Populate Month
+        const namaBulan = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+        namaBulan.forEach((b, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx + 1;
+            opt.innerText = b;
+            monthSelect.appendChild(opt);
+        });
+
+        // Populate Year
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.innerText = y;
+            yearSelect.appendChild(opt);
+        }
+
+        // Set to current month & year in Asia/Jakarta timezone
+        const dateJakarta = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
+        monthSelect.value = dateJakarta.getMonth() + 1;
+        yearSelect.value = dateJakarta.getFullYear();
+    }
+
+    muatJadwalTheater();
+}
+
+function gantiBulanTheater() {
+    muatJadwalTheater();
+}
+
+async function muatJadwalTheater() {
+    const month = document.getElementById('theaterMonthSelect').value;
+    const year = document.getElementById('theaterYearSelect').value;
+    const container = document.getElementById('theaterShowsContainer');
+    const statusLabel = document.getElementById('theaterStatus');
+
+    container.innerHTML = '<div class="text-slate-400 text-xs py-2 italic text-center w-full">Memuat jadwal pertunjukan...</div>';
+    statusLabel.innerText = "⏳ Memuat Jadwal...";
+    statusLabel.className = "text-xs font-bold text-sky-400";
+
+    try {
+        const fetchUrl = `${API_URL}/api/schedules?month=${month}&year=${year}&_cb=${new Date().getTime()}`;
+        const response = await fetch(fetchUrl);
+        if (!response.ok) throw new Error("Gagal mengambil jadwal teater.");
+
+        const resJson = await response.json();
+        if (!resJson.status || !resJson.data) throw new Error("Format jadwal tidak valid.");
+
+        // Filter only type SHOW
+        semuaTheaterShows = resJson.data.filter(item => item.type === 'SHOW');
+
+        if (semuaTheaterShows.length === 0) {
+            container.innerHTML = '<div class="text-slate-500 text-xs py-4 italic text-center w-full">Tidak ada pertunjukan theater pada bulan ini.</div>';
+            statusLabel.innerText = "🔴 Tidak Ada Show";
+            statusLabel.className = "text-xs font-bold text-slate-400";
+            return;
+        }
+
+        renderTheaterShowCards();
+        statusLabel.innerText = "🟢 Jadwal Sinkron";
+        statusLabel.className = "text-xs font-bold text-emerald-400";
+
+        // Auto-select show: find first upcoming show or today's show
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // start of today
+
+        let selectedIndex = 0; // Default to first show if none matching
+        for (let i = 0; i < semuaTheaterShows.length; i++) {
+            const showDate = new Date(semuaTheaterShows[i].date);
+            if (showDate >= now) {
+                selectedIndex = i;
+                break;
+            }
+        }
+        
+        // If all shows are in the past, select the last one
+        if (selectedIndex === 0 && new Date(semuaTheaterShows[0].date) < now) {
+            selectedIndex = semuaTheaterShows.length - 1;
+        }
+
+        const defaultShow = semuaTheaterShows[selectedIndex];
+        if (defaultShow && defaultShow.reference_code) {
+            selectTheaterShow(defaultShow.reference_code);
+        }
+
+    } catch (error) {
+        container.innerHTML = `<div class="text-rose-400 text-xs py-2 italic text-center w-full">Error: ${error.message}</div>`;
+        statusLabel.innerText = "⚠️ Gangguan Jadwal";
+        statusLabel.className = "text-xs font-bold text-rose-400";
+    }
+}
+
+function renderTheaterShowCards() {
+    const container = document.getElementById('theaterShowsContainer');
+    container.innerHTML = '';
+
+    const now = new Date();
+    now.setHours(0,0,0,0);
+
+    semuaTheaterShows.forEach(show => {
+        const code = show.reference_code || '';
+        const showDate = new Date(show.date);
+        
+        // Determine status tag
+        let statusBadge = '';
+        const dateDiff = showDate - now;
+        if (dateDiff < 0) {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-500 border border-slate-700/50">Selesai</span>';
+        } else if (dateDiff === 0) {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30 animate-pulse">Hari Ini</span>';
+        } else {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">Mendatang</span>';
+        }
+
+        // Team badge
+        const team = show.jkt48_member_type || 'JKT48';
+        let teamColor = 'bg-slate-700/30 text-slate-300 border-slate-600/50';
+        if (team === 'LOVE') teamColor = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        else if (team === 'PASSION') teamColor = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        else if (team === 'DREAM') teamColor = 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+        else if (team === 'TRAINEE') teamColor = 'bg-teal-500/10 text-teal-400 border-teal-500/30';
+
+        const teamBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold border ${teamColor}">${team}</span>`;
+
+        // Format date: e.g. Jumat, 19 Juni 2026
+        const dateFormatted = showDate.toLocaleDateString('id-ID', {
+            weekday: 'long', day: 'numeric', month: 'short'
+        });
+
+        const time = show.start_time ? show.start_time.substring(0, 5) : '19:00';
+
+        const activeClass = activeTheaterShowCode === code 
+            ? 'border-sky-500 ring-2 ring-sky-500/30 bg-sky-950/20 shadow-sky-500/10' 
+            : 'border-slate-700/60 hover:border-slate-500/50 bg-slate-800/40';
+
+        container.innerHTML += `
+            <div onclick="selectTheaterShow('${code}')" id="show-card-${code}" class="flex-shrink-0 w-64 border rounded-xl p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between h-[105px] group ${activeClass}">
+                <div class="flex justify-between items-start">
+                    ${teamBadge}
+                    ${statusBadge}
+                </div>
+                <div class="mt-2">
+                    <h3 class="font-bold text-xs text-slate-100 truncate group-hover:text-sky-400 transition" title="${show.title}">${show.title}</h3>
+                    <div class="flex justify-between items-center mt-1 text-[10px] text-slate-400">
+                        <span>📅 ${dateFormatted}</span>
+                        <span>⏰ ${time} WIB</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function selectTheaterShow(code) {
+    // Remove active class from previous active card
+    if (activeTheaterShowCode) {
+        const prevCard = document.getElementById(`show-card-${activeTheaterShowCode}`);
+        if (prevCard) {
+            prevCard.className = prevCard.className
+                .replace('border-sky-500 ring-2 ring-sky-500/30 bg-sky-950/20 shadow-sky-500/10', '')
+                .concat(' border-slate-700/60 hover:border-slate-500/50 bg-slate-800/40');
+        }
+    }
+
+    activeTheaterShowCode = code;
+    document.getElementById('theaterSelectedShowCode').innerText = `Code: ${code}`;
+
+    // Add active class to new card
+    const activeCard = document.getElementById(`show-card-${code}`);
+    if (activeCard) {
+        activeCard.className = activeCard.className
+            .replace('border-slate-700/60 hover:border-slate-500/50 bg-slate-800/40', '')
+            .concat(' border-sky-500 ring-2 ring-sky-500/30 bg-sky-950/20 shadow-sky-500/10');
+        // Scroll card into view inside the container
+        activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    muatKuotaTheater(code);
+}
+
+function toggleManualInput() {
+    const inputSec = document.getElementById('manualInputSection');
+    inputSec.classList.toggle('hidden');
+}
+
+function muatKuotaTheaterDariInput() {
+    const code = document.getElementById('theaterCodeInput').value.trim().toUpperCase();
+    if (!code) {
+        alert("Harap masukkan Show Code terlebih dahulu! (Contoh: SHEB90)");
+        return;
+    }
+    // Deselect active cards
+    if (activeTheaterShowCode) {
+        const prevCard = document.getElementById(`show-card-${activeTheaterShowCode}`);
+        if (prevCard) {
+            prevCard.className = prevCard.className
+                .replace('border-sky-500 ring-2 ring-sky-500/30 bg-sky-950/20 shadow-sky-500/10', '')
+                .concat(' border-slate-700/60 hover:border-slate-500/50 bg-slate-800/40');
+        }
+        activeTheaterShowCode = null;
+    }
+    document.getElementById('theaterSelectedShowCode').innerText = `Manual Code: ${code}`;
+    muatKuotaTheater(code);
+}
+
+async function muatKuotaTheater(code) {
+    const targetCode = code || document.getElementById('theaterCodeInput').value.trim().toUpperCase();
     const statusLabel = document.getElementById('theaterStatus');
     const tableBody = document.getElementById('theaterTableBody');
     const dashboardSection = document.getElementById('theaterDashboardSection');
+    const btnLihatMember = document.getElementById('btnLihatMember');
 
-    if (!codeInput) {
-        alert("Harap masukkan Show Code terlebih dahulu! (Contoh: SHEB90)");
+    if (!targetCode) {
+        alert("Harap pilih pertunjukan atau masukkan Show Code!");
         return;
     }
 
@@ -339,9 +562,18 @@ async function muatKuotaTheater() {
     statusLabel.className = "text-xs font-bold text-sky-400";
     dashboardSection.classList.add('hidden');
     tableBody.innerHTML = '';
+    
+    // Reset member globals
+    activeTheaterMembers = [];
+    activeTheaterBirthdayName = [];
+    activeTheaterShowTitle = "";
+    activeTheaterShowDate = "";
+    btnLihatMember.disabled = true;
+    btnLihatMember.innerHTML = "👥 Memuat Member...";
+    btnLihatMember.className = "bg-slate-800/40 text-slate-500 border border-slate-700/50 font-medium py-2 px-4 rounded-lg shadow-sm transition cursor-not-allowed flex items-center gap-1.5";
 
     try {
-        const fetchUrl = `${API_URL}/api/theater?code=${codeInput}&_cb=${new Date().getTime()}`;
+        const fetchUrl = `${API_URL}/api/theater?code=${targetCode}&_cb=${new Date().getTime()}`;
         const response = await fetch(fetchUrl);
         if (!response.ok) throw new Error("Gagal mengambil data show. Periksa apakah kode show benar.");
 
@@ -355,6 +587,23 @@ async function muatKuotaTheater() {
         });
         const time = show.start_time || '19:00';
         const showStatus = show.status; // status keaktifan show
+
+        // Save for modal details
+        activeTheaterShowTitle = title;
+        activeTheaterShowDate = `${dateFormatted} @ ${time} WIB`;
+        activeTheaterMembers = show.jkt48_member || [];
+        activeTheaterBirthdayName = show.birthday_member_name || [];
+
+        // Enable/Disable member button based on member list presence
+        if (activeTheaterMembers.length > 0) {
+            btnLihatMember.disabled = false;
+            btnLihatMember.innerHTML = `👥 Lihat Member Tampil (${activeTheaterMembers.length})`;
+            btnLihatMember.className = "bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 font-bold py-2 px-4 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5";
+        } else {
+            btnLihatMember.disabled = true;
+            btnLihatMember.innerHTML = "👥 Member Belum Dirilis";
+            btnLihatMember.className = "bg-slate-800/40 text-slate-500 border border-slate-700/50 font-medium py-2 px-4 rounded-lg shadow-sm transition cursor-not-allowed flex items-center gap-1.5";
+        }
 
         const sales = show.sales_period || [];
         if (sales.length === 0) {
@@ -433,8 +682,82 @@ async function muatKuotaTheater() {
     } catch (error) {
         statusLabel.innerText = "⚠️ Gangguan Koneksi";
         statusLabel.className = "text-xs font-bold text-rose-400";
+        btnLihatMember.disabled = true;
+        btnLihatMember.innerHTML = "👥 Member Belum Dirilis";
+        btnLihatMember.className = "bg-slate-800/40 text-slate-500 border border-slate-700/50 font-medium py-2 px-4 rounded-lg shadow-sm transition cursor-not-allowed flex items-center gap-1.5";
         alert(error.message);
     }
+}
+
+// ==========================================
+// MEMBER DETAIL MODAL LOGIC
+// ==========================================
+function bukaModalMember() {
+    if (activeTheaterMembers.length === 0) return;
+
+    document.getElementById('modalShowTitle').innerText = activeTheaterShowTitle;
+    document.getElementById('modalShowDate').innerText = activeTheaterShowDate;
+    document.getElementById('modalMemberCount').innerText = activeTheaterMembers.length;
+
+    // Birthday banner handling
+    const bdayBanner = document.getElementById('modalBirthdayBanner');
+    const bdayName = document.getElementById('modalBirthdayName');
+    if (activeTheaterBirthdayName && activeTheaterBirthdayName.length > 0) {
+        bdayName.innerText = activeTheaterBirthdayName.join(', ');
+        bdayBanner.classList.remove('hidden');
+    } else {
+        bdayBanner.classList.add('hidden');
+    }
+
+    // Grid population
+    const grid = document.getElementById('modalMembersGrid');
+    grid.innerHTML = '';
+
+    activeTheaterMembers.forEach(m => {
+        // Team badges inside modal
+        const team = m.type || 'JKT48';
+        let teamBadgeColor = 'bg-slate-800/60 text-slate-300 border-slate-700';
+        if (team === 'LOVE') teamBadgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        else if (team === 'PASSION') teamBadgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        else if (team === 'DREAM') teamBadgeColor = 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+        else if (team === 'TRAINEE') teamBadgeColor = 'bg-teal-500/10 text-teal-400 border-teal-500/30';
+
+        const isBirthdayMember = activeTheaterBirthdayName.includes(m.name);
+        const borderHighlight = isBirthdayMember 
+            ? 'border-amber-500/60 bg-amber-950/20 text-amber-200' 
+            : 'border-slate-800 bg-slate-900 text-slate-200';
+
+        const bdayIcon = isBirthdayMember ? ' 🎂' : '';
+
+        grid.innerHTML += `
+            <div class="border rounded-xl p-3 flex flex-col justify-between gap-1.5 shadow-sm hover:border-slate-600 transition duration-300 ${borderHighlight}">
+                <div class="font-bold text-xs leading-snug">${m.name}${bdayIcon}</div>
+                <div class="flex items-center mt-1">
+                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border ${teamBadgeColor}">${team}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    const modal = document.getElementById('memberModal');
+    modal.classList.remove('hidden');
+    // Force reflow for CSS transitions
+    modal.offsetHeight;
+    modal.classList.remove('opacity-0');
+    modal.querySelector('.transform').classList.remove('scale-95');
+    modal.querySelector('.transform').classList.add('scale-100');
+}
+
+function tutupModalMember() {
+    const modal = document.getElementById('memberModal');
+    modal.classList.add('opacity-0');
+    modal.querySelector('.transform').classList.remove('scale-100');
+    modal.querySelector('.transform').classList.add('scale-95');
+    
+    // Hide after animation finishes (300ms)
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
 }
 
 
