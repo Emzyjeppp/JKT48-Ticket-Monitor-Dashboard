@@ -239,13 +239,13 @@ function filterData() {
 
 function renderTabel(data) {
     const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '';
 
     if(data.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">Tidak ada tiket oshi atau benefit yang sesuai filter saat ini.</td></tr>`;
         return;
     }
 
+    const rows = [];
     data.forEach(item => {
         let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400 whitespace-nowrap">Tersedia</span>`;
         let rowBg = "hover:bg-slate-700/30 transition";
@@ -269,7 +269,7 @@ function renderTabel(data) {
             ? `<button onclick="toggleOshi('${item.nama}')" class="text-amber-400 hover:text-amber-300 mr-2 focus:outline-none transition cursor-pointer text-base select-none">⭐</button>`
             : `<button onclick="toggleOshi('${item.nama}')" class="text-slate-600 hover:text-amber-400 mr-2 focus:outline-none transition cursor-pointer text-base select-none">☆</button>`;
 
-        tbody.innerHTML += `
+        rows.push(`
             <tr class="${rowBg}">
                 <td class="p-4 font-bold text-xs text-sky-400 uppercase tracking-wider">${item.event}</td>
                 <td class="p-4">${jenisBadge}</td>
@@ -279,8 +279,9 @@ function renderTabel(data) {
                 <td class="p-4 text-center font-mono font-bold text-emerald-400 text-base">${item.sisa}</td>
                 <td class="p-4 text-center">${statusBadge}</td>
             </tr>
-        `;
+        `);
     });
+    tbody.innerHTML = rows.join('');
 }
 
 function renderHistory(historyList) {
@@ -435,11 +436,11 @@ async function muatJadwalTheater() {
 
 function renderTheaterShowCards() {
     const container = document.getElementById('theaterShowsContainer');
-    container.innerHTML = '';
 
     const now = new Date();
     now.setHours(0,0,0,0);
 
+    const cards = [];
     semuaTheaterShows.forEach(show => {
         const code = show.reference_code || '';
         const showDate = new Date(show.date);
@@ -476,7 +477,7 @@ function renderTheaterShowCards() {
             ? 'border-sky-500 ring-2 ring-sky-500/30 bg-sky-950/20 shadow-sky-500/10' 
             : 'border-slate-700/60 hover:border-slate-500/50 bg-slate-800/40';
 
-        container.innerHTML += `
+        cards.push(`
             <div onclick="selectTheaterShow('${code}')" id="show-card-${code}" class="flex-shrink-0 w-64 border rounded-xl p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between h-[105px] group ${activeClass}">
                 <div class="flex justify-between items-start">
                     ${teamBadge}
@@ -490,8 +491,9 @@ function renderTheaterShowCards() {
                     </div>
                 </div>
             </div>
-        `;
+        `);
     });
+    container.innerHTML = cards.join('');
 }
 
 function selectTheaterShow(code) {
@@ -650,6 +652,7 @@ async function muatKuotaTheater(code) {
         });
 
         // Gambar ke tabel
+        const rows = [];
         parsedData.forEach(item => {
             let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400 whitespace-nowrap">Tersedia</span>`;
             let rowBg = "hover:bg-slate-700/30 transition";
@@ -662,7 +665,7 @@ async function muatKuotaTheater(code) {
                 rowBg = "bg-amber-950/10 text-slate-400";
             }
 
-            tableBody.innerHTML += `
+            rows.push(`
                 <tr class="${rowBg}">
                     <td class="p-4 font-bold text-slate-200">${item.showTitle}</td>
                     <td class="p-4 text-slate-300 text-xs font-medium">${item.dateTime}</td>
@@ -672,8 +675,9 @@ async function muatKuotaTheater(code) {
                     <td class="p-4 text-center font-mono text-xs font-semibold text-sky-400">${item.method}</td>
                     <td class="p-4 text-center">${statusBadge}</td>
                 </tr>
-            `;
+            `);
         });
+        tableBody.innerHTML = rows.join('');
 
         statusLabel.innerText = "🟢 Data Sinkron";
         statusLabel.className = "text-xs font-bold text-emerald-400";
@@ -711,8 +715,8 @@ function bukaModalMember() {
 
     // Grid population
     const grid = document.getElementById('modalMembersGrid');
-    grid.innerHTML = '';
 
+    const memberCards = [];
     activeTheaterMembers.forEach(m => {
         // Team badges inside modal
         const team = m.type || 'JKT48';
@@ -729,15 +733,16 @@ function bukaModalMember() {
 
         const bdayIcon = isBirthdayMember ? ' 🎂' : '';
 
-        grid.innerHTML += `
+        memberCards.push(`
             <div class="border rounded-xl p-3 flex flex-col justify-between gap-1.5 shadow-sm hover:border-slate-600 transition duration-300 ${borderHighlight}">
                 <div class="font-bold text-xs leading-snug">${m.name}${bdayIcon}</div>
                 <div class="flex items-center mt-1">
                     <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border ${teamBadgeColor}">${team}</span>
                 </div>
             </div>
-        `;
+        `);
     });
+    grid.innerHTML = memberCards.join('');
 
     const modal = document.getElementById('memberModal');
     modal.classList.remove('hidden');
@@ -948,7 +953,6 @@ function updateJsonTableHeaders(type) {
 
 function renderJsonTabel(data) {
     const tbody = document.getElementById('jsonTableBody');
-    tbody.innerHTML = '';
 
     const colCount = jsonDataType === 'THEATER' ? 7 : 6;
 
@@ -957,6 +961,7 @@ function renderJsonTabel(data) {
         return;
     }
 
+    const rows = [];
     data.forEach(item => {
         let row = '';
         if (jsonDataType === 'THEATER') {
@@ -1005,8 +1010,9 @@ function renderJsonTabel(data) {
                 </tr>
             `;
         }
-        tbody.innerHTML += row;
+        rows.push(row);
     });
+    tbody.innerHTML = rows.join('');
 }
 
 function filterJsonData() {
