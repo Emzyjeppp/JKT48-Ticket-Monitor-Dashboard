@@ -131,6 +131,8 @@ async function handleRequest(request, event) {
       }
     }
 
+
+
     // 2. Ambil daftar eksklusif aktif dari API JKT48
     const listRes = await fetchJson("https://jkt48.com/api/v1/exclusives?lang=id");
     const exclusives = listRes.data || [];
