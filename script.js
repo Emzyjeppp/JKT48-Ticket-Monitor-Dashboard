@@ -767,7 +767,13 @@ function tutupModalMember() {
 function prosesDump() {
     const rawText = document.getElementById('jsonInput').value.trim();
     if(!rawText) {
-        alert('Teks JSON kosong! Salin dulu dari Network Tab.');
+        alert('Teks kosong! Salin dulu dari Network Tab atau Page Source HTML.');
+        return;
+    }
+
+    // Deteksi jika input adalah HTML
+    if (rawText.startsWith('<') || rawText.includes('<html') || rawText.includes('<!DOCTYPE')) {
+        prosesHtmlTheater(rawText);
         return;
     }
 
@@ -789,8 +795,46 @@ function prosesDump() {
         document.getElementById('jsonLastUpdate').innerText = `Terakhir Update: ${new Date().toLocaleTimeString('id-ID')} WIB`;
 
     } catch (error) {
-        alert('Gagal membaca JSON. Pastikan seluruh teks tercopy dengan sempurna ya!\nError: ' + error.message);
+        alert('Gagal membaca data. Pastikan seluruh teks ter-copy dengan sempurna ya!\nError: ' + error.message);
     }
+}
+
+function prosesHtmlTheater(html) {
+    semuaJsonMasterData = []; // Reset
+    
+    // Deteksi Judul Show dari tag h2, h3, atau title
+    const titleMatch = html.match(/<h2[^>]*>([^<]+)<\/h2>/i) || html.match(/<h3[^>]*>([^<]+)<\/h3>/i) || html.match(/<title>([^<]+)<\/title>/i);
+    let title = titleMatch ? titleMatch[1].replace("JKT48 Official Web Site | ", "").trim() : 'Theater Show';
+    
+    // Bersihkan judul dari spasi/karakter newline berlebih
+    title = title.replace(/\s+/g, ' ');
+    
+    // Deteksi Status Sold Out
+    const isSoldOut = html.includes("tiket sudah habis terjual") || html.includes("habis terjual") || html.includes("Mohon Maaf");
+    const statusText = isSoldOut ? "SOLD OUT" : "Tersedia";
+
+    // Coba tebak kategori tiket dari HTML
+    // JKT48 biasanya memiliki tabel harga/kategori
+    // Kita buat row umum
+    semuaJsonMasterData.push({
+        showTitle: title,
+        dateTime: "Lihat di halaman resmi",
+        category: "Semua Kategori (Parsed dari HTML)",
+        salesPeriod: "Lihat halaman tiket asli",
+        quota: "N/A",
+        method: "FCFS / Raffle",
+        price: 200000,
+        status: statusText
+    });
+    
+    jsonDataType = 'THEATER';
+    updateJsonTableHeaders('THEATER');
+    renderJsonTabel(semuaJsonMasterData);
+    
+    // Tampilkan elemen dashboard & live search
+    document.getElementById('jsonDashboardSection').classList.remove('hidden');
+    document.getElementById('jsonSearchFilter').classList.remove('hidden');
+    document.getElementById('jsonLastUpdate').innerText = `Terakhir Update: Parsed dari HTML @ ${new Date().toLocaleTimeString('id-ID')} WIB`;
 }
 
 function prosesJsonExclusives(dataSesi) {
