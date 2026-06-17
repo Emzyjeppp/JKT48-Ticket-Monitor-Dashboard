@@ -16,6 +16,13 @@ const API_URL = 'https://jkt48-monitor-api.jefryoconner49.workers.dev';
 // ==========================================
 // SPA NAVIGATION
 // ==========================================
+function updateBentoStats() {
+    const bentoOshi = document.getElementById('bentoOshiCount');
+    if (bentoOshi) {
+        bentoOshi.innerText = `${oshiBookmarks.length} Member`;
+    }
+}
+
 function navigateTo(view) {
     // Sembunyikan semua view
     document.getElementById('portalView').classList.add('hidden');
@@ -33,6 +40,7 @@ function navigateTo(view) {
     if (view === 'portal') {
         document.getElementById('portalView').classList.remove('hidden');
         document.title = "JKT48 Advanced Ticket & Theater Monitor";
+        updateBentoStats();
     } else if (view === 'exclusives') {
         document.getElementById('exclusivesView').classList.remove('hidden');
         document.title = "JKT48 Exclusives Ticket Monitor";
@@ -45,6 +53,19 @@ function navigateTo(view) {
         document.getElementById('jsonReaderView').classList.remove('hidden');
         document.title = "JKT48 Dump JSON Parser";
     }
+
+    // Update active class pada navigasi global
+    const views = ['portal', 'exclusives', 'theater', 'jsonReader'];
+    views.forEach(v => {
+        const navBtn = document.getElementById(`nav-${v}`);
+        if (navBtn) {
+            if (v === view) {
+                navBtn.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer bg-gradient-to-r from-rose-500/10 to-sky-500/10 text-sky-400 border border-sky-500/20";
+            } else {
+                navBtn.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent";
+            }
+        }
+    });
 }
 
 
@@ -94,6 +115,7 @@ function toggleOshi(memberName) {
     }
     localStorage.setItem('oshiBookmarks', JSON.stringify(oshiBookmarks));
     filterData();
+    updateBentoStats();
 }
 
 // Mengambil data dari Cloudflare Worker API
@@ -1037,4 +1059,5 @@ function filterJsonData() {
 // Navigasi ke portal default saat halaman selesai dimuat pertama kali
 window.onload = function() {
     navigateTo('portal');
+    updateBentoStats();
 };

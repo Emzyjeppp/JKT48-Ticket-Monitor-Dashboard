@@ -27,13 +27,14 @@
     <link rel="icon" type="image/png" href="assets/logo.png">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap');
         body { 
-            background-color: #0f172a; 
+            background-color: #0b0f19; 
             background-image: 
-                radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.07) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.07) 0px, transparent 50%);
+                radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.06) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 50%);
             color: #f8fafc; 
-            font-family: sans-serif; 
+            font-family: 'Outfit', sans-serif; 
             background-attachment: fixed;
         }
     </style>
@@ -41,61 +42,130 @@
 </head>
 <body class="p-4 md:p-8 min-h-screen flex flex-col justify-between">
 
+    <!-- Unified Header / Top Navigation Bar -->
+    <header class="w-full max-w-6xl mx-auto mb-8 border-b border-slate-800/80 pb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3 cursor-pointer select-none" onclick="navigateTo('portal')">
+            <img src="assets/logo.png" class="w-10 h-10 rounded-full border border-rose-500 shadow-lg hover:scale-105 hover:rotate-3 transition duration-300" alt="JKT48 Monitor Logo">
+            <div>
+                <h1 class="text-lg font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-sky-500">JKT48 MONITOR</h1>
+                <p class="text-[9px] text-slate-500 font-bold tracking-widest uppercase">Advanced Ticket & Show Tracker</p>
+            </div>
+        </div>
+        <nav class="flex gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800/60 backdrop-blur-md">
+            <button onclick="navigateTo('portal')" id="nav-portal" class="px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer">
+                🏠 Beranda
+            </button>
+            <button onclick="navigateTo('exclusives')" id="nav-exclusives" class="px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer">
+                🤝 Exclusives
+            </button>
+            <button onclick="navigateTo('theater')" id="nav-theater" class="px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer">
+                🎭 Theater
+            </button>
+            <button onclick="navigateTo('jsonReader')" id="nav-jsonReader" class="px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer">
+                ⚡ JSON Parser
+            </button>
+        </nav>
+    </header>
+
     <!-- Main Container -->
     <div class="max-w-6xl mx-auto w-full flex-grow">
         
         <!-- ================= PAGE PORTAL MENU (LANDING VIEW) ================= -->
-        <div id="portalView" class="py-12 flex flex-col items-center justify-center">
-            <header class="text-center mb-12">
-                <img src="assets/logo.png" class="w-20 h-20 rounded-full border-2 border-rose-500 shadow-xl mx-auto mb-4 hover:scale-105 hover:brightness-110 hover:rotate-3 transition duration-300 cursor-pointer" alt="Emzyjeppp Logo">
-                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-purple-500 to-sky-500 tracking-wider">
-                    JKT48 ADVANCED MONITOR
-                </h1>
-                <p class="text-slate-400 text-sm mt-2 max-w-lg mx-auto">Sistem integrasi pemantau kuota tiket event, status sold out pertunjukan theater, dan parser dump data JSON dalam satu platform.</p>
-            </header>
+        <div id="portalView" class="py-4">
+            <div class="mb-8 text-left">
+                <h2 class="text-3xl font-black text-white tracking-tight">Halo, Fans JKT48!</h2>
+                <p class="text-slate-400 text-xs mt-1">Gunakan panel di bawah untuk memantau status tiket event exclusives, show teater, dan parsing JSON secara real-time.</p>
+            </div>
 
-            <!-- Card Grid Menu -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+            <!-- Bento Grid Menu -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                 
-                <!-- Card 1: Exclusives Monitor -->
-                <div onclick="navigateTo('exclusives')" class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-rose-500/10 hover:border-rose-500/40 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between group">
-                    <div>
+                <!-- Card 1: Exclusives Monitor (md:col-span-2) -->
+                <div onclick="navigateTo('exclusives')" class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-rose-500/10 hover:border-rose-500/40 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between min-h-[220px] group relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl group-hover:bg-rose-500/20 transition-all duration-500"></div>
+                    
+                    <div class="z-10">
                         <div class="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition duration-300">
                             🤝
                         </div>
                         <h2 class="text-xl font-bold text-rose-400 mb-2">Tiket Event Exclusives</h2>
-                        <p class="text-slate-400 text-xs leading-relaxed">Pantau secara otomatis & real-time kuota sisa tiket <strong>Meet & Greet, 2-Shot, dan Video Call</strong> per member oshi JKT48 (Auto-refresh 15s).</p>
+                        <p class="text-slate-300 text-xs leading-relaxed max-w-xl">Pantau secara otomatis & real-time kuota sisa tiket <strong>Meet & Greet, 2-Shot, dan Video Call</strong> per member oshi JKT48. Sistem melakukan auto-refresh berkala setiap 15 detik agar Anda tidak tertinggal info tiket menipis.</p>
                     </div>
-                    <div class="mt-6 text-rose-400 text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition duration-300">
-                        Buka Pemantau <span>➔</span>
+                    
+                    <div class="z-10 mt-6 flex justify-between items-center text-rose-400 text-xs font-bold">
+                        <span class="flex items-center gap-1 group-hover:translate-x-1 transition duration-300">Buka Pemantau ➔</span>
+                        <span class="px-2 py-0.5 rounded-full text-[9px] bg-rose-500/10 border border-rose-500/20 text-rose-300 uppercase tracking-widest font-mono">Live Sync</span>
                     </div>
                 </div>
 
-                <!-- Card 2: Theater Live Monitor -->
-                <div onclick="navigateTo('theater')" class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-sky-500/10 hover:border-sky-500/40 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between group">
-                    <div>
+                <!-- Card 2: Theater Live Monitor (md:col-span-1, with background stage image) -->
+                <div onclick="navigateTo('theater')" class="rounded-2xl shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 hover:shadow-sky-500/10 border border-slate-700/50 flex flex-col justify-between min-h-[220px] group relative overflow-hidden" style="background-image: url('assets/jkt48_theater_stage.png'); background-size: cover; background-position: center;">
+                    <div class="absolute inset-0 bg-slate-950/75 group-hover:bg-slate-950/65 transition-all duration-500 rounded-2xl z-0"></div>
+                    
+                    <div class="z-10 p-6">
                         <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition duration-300">
                             🎭
                         </div>
                         <h2 class="text-xl font-bold text-sky-400 mb-2">Tiket Theater Show</h2>
-                        <p class="text-slate-400 text-xs leading-relaxed">Cek ketersediaan tiket pertunjukan theater di <strong>jkt48.com/schedule</strong> berdasarkan show code (misal: SHEB90) secara dinamis.</p>
+                        <p class="text-slate-300 text-xs leading-relaxed">Cek ketersediaan tiket teater JKT48 resmi secara dinamis berdasarkan kode show pertunjukan.</p>
                     </div>
-                    <div class="mt-6 text-sky-400 text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition duration-300">
-                        Buka Pemantau <span>➔</span>
+                    
+                    <div class="z-10 p-6 mt-2 text-sky-400 text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition duration-300">
+                        Buka Pemantau ➔
                     </div>
                 </div>
 
-                <!-- Card 3: JSON Reader -->
-                <div onclick="navigateTo('jsonReader')" class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-purple-500/10 hover:border-purple-500/40 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between group">
-                    <div>
+                <!-- Card 3: JSON Reader (md:col-span-1) -->
+                <div onclick="navigateTo('jsonReader')" class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-purple-500/10 hover:border-purple-500/40 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between min-h-[220px] group relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all duration-500"></div>
+                    
+                    <div class="z-10">
                         <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition duration-300">
                             ⚡
                         </div>
                         <h2 class="text-xl font-bold text-purple-400 mb-2">Pembaca Dump JSON</h2>
-                        <p class="text-slate-400 text-xs leading-relaxed">Alternatif tangguh dengan menyalin/menempel (*copy-paste*) dump respon JSON dari Network Tab browser untuk memproses data kuota instan.</p>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">Tempel response data JSON mentah untuk di-parse instan ke dalam tabel terstruktur.</p>
+                        
+                        <!-- Mini terminal preview code decoration -->
+                        <div class="font-mono text-[9px] text-emerald-400 bg-slate-950/80 p-2.5 rounded-lg border border-slate-800/80 select-none">
+                            <span class="text-slate-500">// Parser Mode</span><br>
+                            { <span class="text-purple-400">"status"</span>: <span class="text-sky-400">true</span>, <span class="text-purple-400">"data"</span>: [...] }
+                        </div>
                     </div>
-                    <div class="mt-6 text-purple-400 text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition duration-300">
-                        Buka Pembaca <span>➔</span>
+                    
+                    <div class="z-10 mt-4 text-purple-400 text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition duration-300">
+                        Buka Pembaca ➔
+                    </div>
+                </div>
+
+                <!-- Card 4: Quick Statistics & App Status (md:col-span-2) -->
+                <div class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[220px] relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-sky-500/5 rounded-full blur-3xl"></div>
+                    
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-2xl mb-4">
+                            📊
+                        </div>
+                        <h2 class="text-xl font-bold text-emerald-400 mb-2">Statistik Monitor JKT48</h2>
+                        <p class="text-slate-300 text-xs leading-relaxed max-w-xl">Ringkasan status sinkronisasi sistem pemantau. Data diambil dari Cloudflare Worker API dan di-cache secara aman untuk performa render optimal.</p>
+                    </div>
+                    
+                    <!-- Grid stats inside bento cell -->
+                    <div class="grid grid-cols-3 gap-4 mt-4 border-t border-slate-700/40 pt-4 text-left">
+                        <div>
+                            <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Status API</div>
+                            <div class="text-sm font-black text-emerald-400 mt-0.5 flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span> Sinkron
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Total Oshi</div>
+                            <div id="bentoOshiCount" class="text-sm font-black text-slate-200 mt-0.5">0 Member</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Interval Auto</div>
+                            <div class="text-sm font-black text-sky-400 mt-0.5">15 Detik</div>
+                        </div>
                     </div>
                 </div>
 
@@ -105,22 +175,16 @@
 
         <!-- ================= VIEW 1: EXCLUSIVES TICKET MONITOR ================= -->
         <div id="exclusivesView" class="hidden">
-            <!-- Nav Header -->
-            <button onclick="navigateTo('portal')" class="mb-6 bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition border border-slate-700/40 cursor-pointer flex items-center gap-1">
-                ← Kembali ke Menu Utama
-            </button>
-
-            <header class="mb-4 text-center md:text-left flex flex-col md:flex-row justify-between items-center pb-4">
+            <header class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 pb-4 border-b border-slate-800/80">
                 <div>
-                    <h1 class="text-3xl font-extrabold text-rose-500 tracking-wide flex items-center justify-center md:justify-start gap-2">
-                        <img src="assets/logo.png" class="w-8 h-8 rounded-full border border-rose-500 shadow-md" alt="Emzyjeppp Logo">
-                        JKT48 EXCLUSIVE MONITOR
-                    </h1>
-                    <p class="text-slate-400 text-sm mt-1">Sistem Pemantau Otomatis Tiket Event JKT48 (Meet & Greet, 2-Shot & Video Call) oleh <a href="https://github.com/Emzyjeppp" target="_blank" class="text-rose-400 hover:text-rose-300 hover:underline transition font-medium">emzyjeppp</a></p>
+                    <h2 class="text-xl font-bold text-rose-400 flex items-center gap-2">
+                        🤝 Tiket Event Exclusives
+                    </h2>
+                    <p class="text-slate-400 text-xs mt-0.5">Status sisa tiket Meet & Greet, 2-Shot, dan Video Call per member oshi JKT48.</p>
                 </div>
-                <div class="text-right mt-2 md:mt-0">
-                    <div id="statusFetch" class="text-xs font-bold text-emerald-400">🟢 Terhubung ke Repositori</div>
-                    <div id="lastUpdate" class="text-slate-400 text-xs mt-1">Memuat data dari server...</div>
+                <div class="flex flex-col items-start md:items-end text-xs">
+                    <div id="statusFetch" class="font-bold text-emerald-400">🟢 Data Sinkron</div>
+                    <div id="lastUpdate" class="text-slate-500 mt-0.5">Memuat data...</div>
                 </div>
             </header>
 
@@ -218,20 +282,15 @@
 
         <!-- ================= VIEW 2: THEATER LIVE MONITOR ================= -->
         <div id="theaterView" class="hidden">
-            <!-- Nav Header -->
-            <button onclick="navigateTo('portal')" class="mb-6 bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition border border-slate-700/40 cursor-pointer flex items-center gap-1">
-                ← Kembali ke Menu Utama
-            </button>
-
-            <header class="mb-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center pb-4 border-b border-slate-700/60">
+            <header class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 pb-4 border-b border-slate-800/80">
                 <div>
-                    <h1 class="text-3xl font-extrabold text-sky-500 tracking-wide flex items-center justify-center md:justify-start gap-2">
-                        🎭 JKT48 THEATER MONITOR
-                    </h1>
-                    <p class="text-slate-400 text-sm mt-1">Pantau ketersediaan tiket & status sold out pertunjukan theater secara real-time</p>
+                    <h2 class="text-xl font-bold text-sky-400 flex items-center gap-2">
+                        🎭 Tiket Theater Show
+                    </h2>
+                    <p class="text-slate-400 text-xs mt-0.5">Status tiket pertunjukan dan list member JKT48 yang dijadwalkan tampil.</p>
                 </div>
-                <div class="text-right mt-2 md:mt-0">
-                    <div id="theaterStatus" class="text-xs font-bold text-slate-400">Menunggu Input Show Code</div>
+                <div class="flex flex-col items-start md:items-end text-xs">
+                    <div id="theaterStatus" class="font-bold text-slate-400">Menunggu Input Show Code</div>
                 </div>
             </header>
 
@@ -261,7 +320,7 @@
                 </div>
 
                 <!-- Secondary actions (Collapsible Manual Input & Member Button) -->
-                <div class="pt-4 border-t border-slate-700/50 flex flex-wrap gap-3 justify-between items-center text-xs">
+                <div class="pt-4 border-t border-slate-700/50 flex wrap gap-3 justify-between items-center text-xs">
                     <div class="flex gap-2">
                         <button id="btnLihatMember" onclick="bukaModalMember()" class="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 font-bold py-2 px-4 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
                             👥 Lihat Member Tampil
@@ -312,19 +371,16 @@
 
         <!-- ================= VIEW 3: DUMP JSON PARSER ================= -->
         <div id="jsonReaderView" class="hidden">
-            <!-- Nav Header -->
-            <button onclick="navigateTo('portal')" class="mb-6 bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition border border-slate-700/40 cursor-pointer flex items-center gap-1">
-                ← Kembali ke Menu Utama
-            </button>
-
-            <header class="mb-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center pb-4 border-b border-slate-700/60">
+            <header class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 pb-4 border-b border-slate-800/80">
                 <div>
-                    <h1 class="text-3xl font-extrabold text-purple-500 tracking-wide flex items-center justify-center md:justify-start gap-2">
-                        ⚡ DUMP JSON PARSER
-                    </h1>
-                    <p class="text-slate-400 text-sm mt-1">Proses kuota tiket event & status sold out tiket theater via paste JSON mentah</p>
+                    <h2 class="text-xl font-bold text-purple-400 flex items-center gap-2">
+                        ⚡ Dump JSON Parser
+                    </h2>
+                    <p class="text-slate-400 text-xs mt-0.5">Parser cadangan data JSON mentah untuk visualisasi kuota tiket instan.</p>
                 </div>
-                <div id="jsonLastUpdate" class="text-slate-400 text-xs mt-2 md:mt-0"></div>
+                <div class="flex flex-col items-start md:items-end text-xs">
+                    <div id="jsonLastUpdate" class="text-slate-500 font-medium mt-0.5"></div>
+                </div>
             </header>
 
             <!-- Paste Input Controls -->
