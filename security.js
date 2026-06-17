@@ -1,10 +1,18 @@
-// 1. Tantangan Keamanan Halaman (Gatekeeper Prompt)
+// 1. Tantangan Keamanan Halaman (Gatekeeper Prompt - 60 Menit Cache)
 if (!window.location.hostname.includes('localhost') && !window.location.protocol.includes('file')) {
-    const jawaban = prompt("Pertanyaan Keamanan: Siapa oshi emzyjeppp?");
-    if (!jawaban || jawaban.trim().toLowerCase() !== "lana") {
-        alert("Jawaban salah atau dibatalkan! Akses ditolak. 😉");
-        window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=8EuZqnNVZrtZ1Q_h";
-        throw new Error("Akses ditolak: Jawaban salah.");
+    const KEY_EXPIRE = 'securityChallengeExpire';
+    const currentTime = new Date().getTime();
+    const expireTime = localStorage.getItem(KEY_EXPIRE);
+    
+    if (!expireTime || currentTime > parseInt(expireTime)) {
+        const jawaban = prompt("Pertanyaan Keamanan: Siapa oshi emzyjeppp?");
+        if (!jawaban || jawaban.trim().toLowerCase() !== "lana") {
+            alert("Jawaban salah atau dibatalkan! Akses ditolak. 😉");
+            window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=8EuZqnNVZrtZ1Q_h";
+            throw new Error("Akses ditolak: Jawaban salah.");
+        }
+        // Simpan waktu kadaluarsa: 60 menit ke depan (3.600.000 ms)
+        localStorage.setItem(KEY_EXPIRE, currentTime + 3600000);
     }
 }
 
