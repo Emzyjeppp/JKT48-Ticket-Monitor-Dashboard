@@ -1,3 +1,4 @@
+// Global Variables
 let semuaMasterData = [];
 let filterJenisAktif = 'SEMUA';
 let filterEventAktif = 'SEMUA';
@@ -5,8 +6,67 @@ let urutanAktif = 'TERSEDIA';
 let oshiBookmarks = JSON.parse(localStorage.getItem('oshiBookmarks')) || [];
 let fetchTimeout = null;
 
-// Ganti dengan URL Cloudflare Worker Anda setelah dideploy
+// Tipe data & data hasil parsing untuk Halaman 3 (JSON Reader)
+let jsonDataType = 'EXCLUSIVES';
+let semuaJsonMasterData = [];
+
+// URL Cloudflare Worker API
 const API_URL = 'https://jkt48-monitor-api.jefryoconner49.workers.dev';
+
+// ==========================================
+// SPA NAVIGATION
+// ==========================================
+function navigateTo(view) {
+    // Sembunyikan semua view
+    document.getElementById('portalView').classList.add('hidden');
+    document.getElementById('exclusivesView').classList.add('hidden');
+    document.getElementById('theaterView').classList.add('hidden');
+    document.getElementById('jsonReaderView').classList.add('hidden');
+
+    // Matikan timer jika keluar dari halaman exclusives
+    if (view !== 'exclusives' && fetchTimeout) {
+        clearTimeout(fetchTimeout);
+        fetchTimeout = null;
+    }
+
+    // Tampilkan view yang dituju
+    if (view === 'portal') {
+        document.getElementById('portalView').classList.remove('hidden');
+        document.title = "JKT48 Advanced Ticket & Theater Monitor";
+    } else if (view === 'exclusives') {
+        document.getElementById('exclusivesView').classList.remove('hidden');
+        document.title = "JKT48 Exclusives Ticket Monitor";
+        bacaDataLokal(); // Trigger pemuatan otomatis
+    } else if (view === 'theater') {
+        document.getElementById('theaterView').classList.remove('hidden');
+        document.title = "JKT48 Theater Ticket Monitor";
+    } else if (view === 'jsonReader') {
+        document.getElementById('jsonReaderView').classList.remove('hidden');
+        document.title = "JKT48 Dump JSON Parser";
+    }
+}
+
+
+// ==========================================
+// UTILITIES (DATE FORMATTER)
+// ==========================================
+function formatWIB(isoString) {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '-';
+    
+    const tanggal = d.getDate();
+    const bulan = d.toLocaleDateString('id-ID', { month: 'short' });
+    const tahun = d.getFullYear();
+    const jam = String(d.getHours()).padStart(2, '0');
+    const menit = String(d.getMinutes()).padStart(2, '0');
+    
+    return `${tanggal} ${bulan} ${tahun}, ${jam}:${menit} WIB`;
+}
+
+
+// ==========================================
+// HALAMAN 1: TIKET EVENT EXCLUSIVES (MNG, 2S, VC)
+// ==========================================
 
 // Fungsi mereset animasi bar waktu hitung mundur auto-refresh
 function resetProgressBar() {
@@ -35,7 +95,7 @@ function toggleOshi(memberName) {
     filterData();
 }
 
-// Mengambil data dari berkas data.json lokal hasil generate server GitHub Actions atau Cloudflare Worker
+// Mengambil data dari Cloudflare Worker API
 async function bacaDataLokal() {
     // Reset bar visual & jadwal reload otomatis (15 detik)
     resetProgressBar();
@@ -44,7 +104,7 @@ async function bacaDataLokal() {
 
     const statusDiv = document.getElementById('statusFetch');
     try {
-        const fetchUrl = API_URL.startsWith('http') ? API_URL : API_URL + '?_cb=' + new Date().getTime();
+        const fetchUrl = API_URL + '?_cb=' + new Date().getTime();
         const response = await fetch(fetchUrl);
         if (!response.ok) throw new Error("Gagal mengambil data kuota JKT48.");
         
@@ -63,19 +123,18 @@ async function bacaDataLokal() {
         
         filterData();
     } catch (error) {
-        statusDiv.innerText = "⚠️ Menunggu Server Generate";
-        statusDiv.className = "text-xs font-bold text-amber-400";
+        statusDiv.innerText = "⚠️ Gangguan Koneksi";
+        statusDiv.className = "text-xs font-bold text-rose-400";
         document.getElementById('tableBody').innerHTML = `
             <tr>
-                <td colspan="7" class="p-8 text-center text-amber-300">
+                <td colspan="7" class="p-8 text-center text-rose-300">
                     ${error.message}<br>
-                    <span class="text-xs text-slate-400 block mt-1">Silakan picu manual di tab GitHub Actions atau tunggu bot melakukan cron job terjadwal.</span>
+                    <span class="text-xs text-slate-400 block mt-1">Pastikan API Cloudflare Worker Anda aktif dan parameter CORS telah disetel dengan benar.</span>
                 </td>
             </tr>`;
     }
 }
 
-// Handler perubahan filter tombol Kategori
 function setJenisFilter(jenis) {
     filterJenisAktif = jenis;
     ['SEMUA', 'Photocard', '2-Shot', 'Video Call'].forEach(j => {
@@ -91,14 +150,12 @@ function setJenisFilter(jenis) {
     filterData();
 }
 
-// Handler perubahan filter tombol Lokasi
 function setEventFilter(evt) {
     filterEventAktif = evt;
     renderEventFilterButtons(semuaMasterData);
     filterData();
 }
 
-// Fungsi menggambar tombol saringan event secara dinamis
 function renderEventFilterButtons(data) {
     const container = document.getElementById('eventFilterContainer');
     if (!container) return;
@@ -130,7 +187,6 @@ function renderEventFilterButtons(data) {
     container.innerHTML = html;
 }
 
-// Handler perubahan urutan tampilan (Sort)
 function setUrutanFilter(urutan) {
     urutanAktif = urutan;
     ['TERSEDIA', 'SOLDOUT'].forEach(u => {
@@ -146,7 +202,6 @@ function setUrutanFilter(urutan) {
     filterData();
 }
 
-// Fungsi penyaringan gabungan (Multi-filter)
 function filterData() {
     const keyword = document.getElementById('searchFilter').value.toLowerCase();
     
@@ -166,7 +221,6 @@ function filterData() {
         if (aIsOshi && !bIsOshi) return -1;
         if (!aIsOshi && bIsOshi) return 1;
 
-        // Jika sama-sama dipin atau sama-sama tidak dipin, urutkan berdasarkan kriteria aktif
         if (urutanAktif === 'TERSEDIA') {
             if (a.sisa === 0 && b.sisa !== 0) return 1;
             if (a.sisa !== 0 && b.sisa === 0) return -1;
@@ -182,7 +236,6 @@ function filterData() {
     renderTabel(hasilFilter);
 }
 
-// Fungsi menyuntikkan manipulasi baris ke dalam HTML DOM Tabel
 function renderTabel(data) {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
@@ -229,7 +282,6 @@ function renderTabel(data) {
     });
 }
 
-// Fungsi merender riwayat aktivitas sold out terkini
 function renderHistory(historyList) {
     const historyDiv = document.getElementById('historyLog');
     if (!historyList || historyList.length === 0) {
@@ -268,8 +320,348 @@ function renderHistory(historyList) {
     }).join('');
 }
 
-// Eksekusi pemanggilan otomatis saat halaman pertama kali dibuka
-window.onload = function() {
-    bacaDataLokal();
-};
 
+// ==========================================
+// HALAMAN 2: LIVE MONITOR TICKET THEATER
+// ==========================================
+async function muatKuotaTheater() {
+    const codeInput = document.getElementById('theaterCodeInput').value.trim().toUpperCase();
+    const statusLabel = document.getElementById('theaterStatus');
+    const tableBody = document.getElementById('theaterTableBody');
+    const dashboardSection = document.getElementById('theaterDashboardSection');
+
+    if (!codeInput) {
+        alert("Harap masukkan Show Code terlebih dahulu! (Contoh: SHEB90)");
+        return;
+    }
+
+    statusLabel.innerText = "⏳ Menghubungi API...";
+    statusLabel.className = "text-xs font-bold text-sky-400";
+    dashboardSection.classList.add('hidden');
+    tableBody.innerHTML = '';
+
+    try {
+        const fetchUrl = `${API_URL}/api/theater?code=${codeInput}&_cb=${new Date().getTime()}`;
+        const response = await fetch(fetchUrl);
+        if (!response.ok) throw new Error("Gagal mengambil data show. Periksa apakah kode show benar.");
+
+        const resJson = await response.json();
+        if (!resJson.status || !resJson.data) throw new Error(resJson.message || "Data show tidak ditemukan.");
+
+        const show = resJson.data;
+        const title = show.title || 'Theater Show';
+        const dateFormatted = new Date(show.date).toLocaleDateString('id-ID', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+        const time = show.start_time || '19:00';
+        const showStatus = show.status; // status keaktifan show
+
+        const sales = show.sales_period || [];
+        if (sales.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">Tidak ada periode penjualan aktif untuk show ini.</td></tr>`;
+            statusLabel.innerText = "🔴 Show Tidak Aktif";
+            statusLabel.className = "text-xs font-bold text-rose-400";
+            dashboardSection.classList.remove('hidden');
+            return;
+        }
+
+        let parsedData = [];
+        sales.forEach(period => {
+            const periodLabel = period.label || 'Ticket';
+            const method = period.sales_method || 'FCFS';
+            const start = new Date(period.start_date);
+            const end = new Date(period.end_date);
+            const now = new Date();
+
+            const salesPeriodText = `${formatWIB(period.start_date)} - ${formatWIB(period.end_date)}`;
+
+            // Tentukan status ketersediaan tiket
+            let statusText = 'Tersedia';
+            if (!showStatus) {
+                statusText = 'SOLD OUT';
+            } else if (now < start) {
+                statusText = 'Belum Dibuka';
+            } else if (now > end) {
+                statusText = 'SOLD OUT / TUTUP';
+            }
+
+            const pricingList = period.pricing || [];
+            pricingList.forEach(price => {
+                parsedData.push({
+                    showTitle: title,
+                    dateTime: `${dateFormatted} @ ${time}`,
+                    category: `${periodLabel} - ${price.label}`,
+                    salesPeriod: salesPeriodText,
+                    quota: price.quota || 0,
+                    method: method,
+                    price: price.price || 0,
+                    status: statusText
+                });
+            });
+        });
+
+        // Gambar ke tabel
+        parsedData.forEach(item => {
+            let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400 whitespace-nowrap">Tersedia</span>`;
+            let rowBg = "hover:bg-slate-700/30 transition";
+
+            if (item.status.includes('SOLD OUT') || item.status.includes('TUTUP')) {
+                statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-rose-500/20 text-rose-400 whitespace-nowrap">${item.status}</span>`;
+                rowBg = "bg-rose-950/10 text-slate-500 hover:bg-rose-950/20";
+            } else if (item.status === 'Belum Dibuka') {
+                statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-amber-500/20 text-amber-400 whitespace-nowrap">${item.status}</span>`;
+                rowBg = "bg-amber-950/10 text-slate-400";
+            }
+
+            tableBody.innerHTML += `
+                <tr class="${rowBg}">
+                    <td class="p-4 font-bold text-slate-200">${item.showTitle}</td>
+                    <td class="p-4 text-slate-300 text-xs font-medium">${item.dateTime}</td>
+                    <td class="p-4 text-slate-400 text-xs">${item.category} (Rp ${item.price.toLocaleString('id-ID')})</td>
+                    <td class="p-4 text-slate-300 text-xs font-mono text-center">${item.salesPeriod}</td>
+                    <td class="p-4 text-center font-mono font-semibold">${item.quota}</td>
+                    <td class="p-4 text-center font-mono text-xs font-semibold text-sky-400">${item.method}</td>
+                    <td class="p-4 text-center">${statusBadge}</td>
+                </tr>
+            `;
+        });
+
+        statusLabel.innerText = "🟢 Data Sinkron";
+        statusLabel.className = "text-xs font-bold text-emerald-400";
+        dashboardSection.classList.remove('hidden');
+
+    } catch (error) {
+        statusLabel.innerText = "⚠️ Gangguan Koneksi";
+        statusLabel.className = "text-xs font-bold text-rose-400";
+        alert(error.message);
+    }
+}
+
+
+// ==========================================
+// HALAMAN 3: PEMBACA DUMP JSON (MANUAL PARSER)
+// ==========================================
+function prosesDump() {
+    const rawText = document.getElementById('jsonInput').value.trim();
+    if(!rawText) {
+        alert('Teks JSON kosong! Salin dulu dari Network Tab.');
+        return;
+    }
+
+    try {
+        const parsed = JSON.parse(rawText);
+        const showData = parsed.data || parsed;
+        
+        if (showData && (showData.theater_show_id || showData.sales_period || showData.set_list)) {
+            jsonDataType = 'THEATER';
+            prosesJsonTheater(showData);
+        } else {
+            jsonDataType = 'EXCLUSIVES';
+            prosesJsonExclusives(showData);
+        }
+
+        // Tampilkan elemen dashboard & live search
+        document.getElementById('jsonDashboardSection').classList.remove('hidden');
+        document.getElementById('jsonSearchFilter').classList.remove('hidden');
+        document.getElementById('jsonLastUpdate').innerText = `Terakhir Update: ${new Date().toLocaleTimeString('id-ID')} WIB`;
+
+    } catch (error) {
+        alert('Gagal membaca JSON. Pastikan seluruh teks tercopy dengan sempurna ya!\nError: ' + error.message);
+    }
+}
+
+function prosesJsonExclusives(dataSesi) {
+    const sessionsArray = Array.isArray(dataSesi) ? dataSesi : [dataSesi];
+    semuaJsonMasterData = []; // Reset
+
+    sessionsArray.forEach(sesi => {
+        const labelSesi = sesi.label || 'Sesi';
+        const sesiSingkat = labelSesi.split('·')[0].trim();
+
+        if(sesi.session_members && Array.isArray(sesi.session_members)) {
+            sesi.session_members.forEach(m => {
+                semuaJsonMasterData.push({
+                    sesi: sesiSingkat,
+                    jalur: m.label || '-',
+                    nama: m.member_name,
+                    terjual: m.tickets_sold,
+                    sisa: m.quota
+                });
+            });
+        }
+    });
+
+    semuaJsonMasterData.sort((a, b) => a.sisa - b.sisa);
+
+    updateJsonTableHeaders('EXCLUSIVES');
+    renderJsonTabel(semuaJsonMasterData);
+}
+
+function prosesJsonTheater(show) {
+    semuaJsonMasterData = []; // Reset
+
+    const title = show.title || 'Theater Show';
+    const dateFormatted = new Date(show.date).toLocaleDateString('id-ID', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const time = show.start_time || '19:00';
+    const showStatus = show.status; // boolean
+
+    const sales = show.sales_period || [];
+    sales.forEach(period => {
+        const periodLabel = period.label || 'Ticket';
+        const method = period.sales_method || 'FCFS';
+        const start = new Date(period.start_date);
+        const end = new Date(period.end_date);
+        const now = new Date();
+
+        const salesPeriodText = `${formatWIB(period.start_date)} - ${formatWIB(period.end_date)}`;
+
+        let statusText = 'Tersedia';
+        if (!showStatus) {
+            statusText = 'SOLD OUT';
+        } else if (now < start) {
+            statusText = 'Belum Dibuka';
+        } else if (now > end) {
+            statusText = 'SOLD OUT / TUTUP';
+        }
+
+        const pricingList = period.pricing || [];
+        pricingList.forEach(price => {
+            semuaJsonMasterData.push({
+                showTitle: title,
+                dateTime: `${dateFormatted} @ ${time}`,
+                category: `${periodLabel} - ${price.label}`,
+                salesPeriod: salesPeriodText,
+                quota: price.quota || 0,
+                method: method,
+                price: price.price || 0,
+                status: statusText
+            });
+        });
+    });
+
+    semuaJsonMasterData.sort((a, b) => {
+        if (a.status === 'Tersedia' && b.status !== 'Tersedia') return -1;
+        if (a.status !== 'Tersedia' && b.status === 'Tersedia') return 1;
+        return 0;
+    });
+
+    updateJsonTableHeaders('THEATER');
+    renderJsonTabel(semuaJsonMasterData);
+}
+
+function updateJsonTableHeaders(type) {
+    const thead = document.getElementById('jsonTableHeader');
+    if (type === 'THEATER') {
+        thead.innerHTML = `
+            <tr class="bg-slate-700/50 text-slate-300 text-xs font-bold uppercase tracking-wider border-b border-slate-700">
+                <th class="p-4">Show / Setlist</th>
+                <th class="p-4">Tanggal & Jam Show</th>
+                <th class="p-4">Kategori Tiket</th>
+                <th class="p-4 text-center">Periode Penjualan</th>
+                <th class="p-4 text-center">Kuota Awal</th>
+                <th class="p-4 text-center">Metode</th>
+                <th class="p-4 text-center">Status</th>
+            </tr>
+        `;
+    } else {
+        thead.innerHTML = `
+            <tr class="bg-slate-700/50 text-slate-300 text-xs font-bold uppercase tracking-wider border-b border-slate-700">
+                <th class="p-4">Sesi / Event</th>
+                <th class="p-4">Jalur</th>
+                <th class="p-4 text-rose-300">Nama Member</th>
+                <th class="p-4 text-center">Tiket Terjual</th>
+                <th class="p-4 text-center">Sisa Stok</th>
+                <th class="p-4 text-center">Status</th>
+            </tr>
+        `;
+    }
+}
+
+function renderJsonTabel(data) {
+    const tbody = document.getElementById('jsonTableBody');
+    tbody.innerHTML = '';
+
+    const colCount = jsonDataType === 'THEATER' ? 7 : 6;
+
+    if(data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colCount}" class="p-8 text-center text-slate-500">Tidak ada data yang cocok.</td></tr>`;
+        return;
+    }
+
+    data.forEach(item => {
+        let row = '';
+        if (jsonDataType === 'THEATER') {
+            let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400 whitespace-nowrap">Tersedia</span>`;
+            let rowBg = "hover:bg-slate-700/30 transition";
+
+            if (item.status.includes('SOLD OUT') || item.status.includes('TUTUP')) {
+                statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-rose-500/20 text-rose-400 whitespace-nowrap">${item.status}</span>`;
+                rowBg = "bg-rose-950/10 text-slate-500 hover:bg-rose-950/20";
+            } else if (item.status === 'Belum Dibuka') {
+                statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-amber-500/20 text-amber-400 whitespace-nowrap">${item.status}</span>`;
+                rowBg = "bg-amber-950/10 text-slate-400";
+            }
+
+            row = `
+                <tr class="${rowBg}">
+                    <td class="p-4 font-bold text-slate-200">${item.showTitle}</td>
+                    <td class="p-4 text-slate-300 text-xs font-medium">${item.dateTime}</td>
+                    <td class="p-4 text-slate-400 text-xs">${item.category} (Rp ${item.price.toLocaleString('id-ID')})</td>
+                    <td class="p-4 text-slate-300 text-xs font-mono text-center">${item.salesPeriod}</td>
+                    <td class="p-4 text-center font-mono font-semibold">${item.quota}</td>
+                    <td class="p-4 text-center font-mono text-xs font-semibold text-sky-400">${item.method}</td>
+                    <td class="p-4 text-center">${statusBadge}</td>
+                </tr>
+            `;
+        } else {
+            let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400 whitespace-nowrap">Tersedia</span>`;
+            let rowBg = "hover:bg-slate-700/30 transition";
+
+            if (item.sisa === 0) {
+                statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-rose-500/20 text-rose-400 whitespace-nowrap">SOLD OUT</span>`;
+                rowBg = "bg-rose-950/10 text-slate-500 hover:bg-rose-950/20";
+            } else if (item.sisa <= 5) {
+                statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-amber-500/20 text-amber-400 animate-pulse whitespace-nowrap">Menipis</span>`;
+                rowBg = "bg-amber-950/10 hover:bg-amber-950/20 text-amber-100";
+            }
+
+            row = `
+                <tr class="${rowBg}">
+                    <td class="p-4 font-medium text-slate-300">${item.sesi}</td>
+                    <td class="p-4 text-slate-400 text-xs">${item.jalur}</td>
+                    <td class="p-4 font-bold text-slate-200">${item.nama}</td>
+                    <td class="p-4 text-center font-mono font-semibold">${item.terjual}</td>
+                    <td class="p-4 text-center font-mono font-bold text-emerald-400">${item.sisa}</td>
+                    <td class="p-4 text-center">${statusBadge}</td>
+                </tr>
+            `;
+        }
+        tbody.innerHTML += row;
+    });
+}
+
+function filterJsonData() {
+    const keyword = document.getElementById('jsonSearchFilter').value.toLowerCase();
+    let hasilFilter = [];
+    
+    if (jsonDataType === 'THEATER') {
+        hasilFilter = semuaJsonMasterData.filter(item => 
+            item.showTitle.toLowerCase().includes(keyword) || 
+            item.category.toLowerCase().includes(keyword) ||
+            item.salesPeriod.toLowerCase().includes(keyword)
+        );
+    } else {
+        hasilFilter = semuaJsonMasterData.filter(item => 
+            item.nama.toLowerCase().includes(keyword) || 
+            item.sesi.toLowerCase().includes(keyword)
+        );
+    }
+    renderJsonTabel(hasilFilter);
+}
+
+// Navigasi ke portal default saat halaman selesai dimuat pertama kali
+window.onload = function() {
+    navigateTo('portal');
+};

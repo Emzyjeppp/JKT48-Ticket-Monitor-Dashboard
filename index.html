@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JKT48 Ticket Monitor</title>
+    <title>JKT48 Advanced Ticket & Theater Monitor</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Sistem pemantau otomatis tiket event JKT48 (Meet & Greet, 2-Shot, & Video Call) secara real-time.">
-    <meta name="keywords" content="jkt48, jkt48 monitor, kuota jkt48, meet & greet jkt48, 2-shot jkt48, video call jkt48">
+    <meta name="description" content="Sistem pemantau otomatis tiket event JKT48 (Meet & Greet, 2-Shot, & Video Call) serta status sold out tiket theater secara real-time.">
+    <meta name="keywords" content="jkt48, jkt48 monitor, kuota jkt48, meet & greet jkt48, 2-shot jkt48, video call jkt48, theater jkt48">
     <meta name="author" content="emzyjeppp">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://jkt48monitor.netlify.app/">
-    <meta property="og:title" content="JKT48 Ticket Monitor">
-    <meta property="og:description" content="Pantau sisa kuota tiket event JKT48 secara real-time dan otomatis setiap menit.">
+    <meta property="og:title" content="JKT48 Ticket & Theater Monitor">
+    <meta property="og:description" content="Pantau sisa kuota tiket event & status sold out tiket theater JKT48 secara real-time dan otomatis.">
     <meta property="og:image" content="https://github.com/Emzyjeppp.png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary">
     <meta property="twitter:url" content="https://jkt48monitor.netlify.app/">
-    <meta property="twitter:title" content="JKT48 Ticket Monitor">
-    <meta property="twitter:description" content="Pantau sisa kuota tiket event JKT48 secara real-time dan otomatis setiap menit.">
+    <meta property="twitter:title" content="JKT48 Ticket & Theater Monitor">
+    <meta property="twitter:description" content="Pantau sisa kuota tiket event & status sold out tiket theater JKT48 secara real-time dan otomatis.">
     <meta property="twitter:image" content="https://github.com/Emzyjeppp.png">
 
     <link rel="icon" type="image/png" href="https://github.com/Emzyjeppp.png">
@@ -30,8 +30,8 @@
         body { 
             background-color: #0f172a; 
             background-image: 
-                radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.06) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 50%);
+                radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.07) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.07) 0px, transparent 50%);
             color: #f8fafc; 
             font-family: sans-serif; 
             background-attachment: fixed;
@@ -39,124 +39,300 @@
     </style>
     <script src="security.js"></script>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-8 min-h-screen flex flex-col justify-between">
 
-    <div class="max-w-6xl mx-auto">
-        <header class="mb-4 text-center md:text-left flex flex-col md:flex-row justify-between items-center pb-4">
-            <div>
-                <h1 class="text-3xl font-extrabold text-rose-500 tracking-wide flex items-center justify-center md:justify-start gap-2">
-                    <img src="https://github.com/Emzyjeppp.png" class="w-8 h-8 rounded-full border border-rose-500 shadow-md" alt="Emzyjeppp Logo">
-                    JKT48 EXCLUSIVE MONITOR
+    <!-- Main Container -->
+    <div class="max-w-6xl mx-auto w-full flex-grow">
+        
+        <!-- ================= PAGE PORTAL MENU (LANDING VIEW) ================= -->
+        <div id="portalView" class="py-12 flex flex-col items-center justify-center">
+            <header class="text-center mb-12">
+                <img src="https://github.com/Emzyjeppp.png" class="w-20 h-20 rounded-full border-2 border-rose-500 shadow-xl mx-auto mb-4 animate-pulse" alt="Emzyjeppp Logo">
+                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-purple-500 to-sky-500 tracking-wider">
+                    JKT48 ADVANCED MONITOR
                 </h1>
-                <p class="text-slate-400 text-sm mt-1">Sistem Pemantau Otomatis Tiket Event JKT48 (Meet & Greet, 2-Shot & Video Call) oleh <a href="https://github.com/Emzyjeppp" target="_blank" class="text-rose-400 hover:text-rose-300 hover:underline transition font-medium">emzyjeppp</a></p>
-            </div>
-            <div class="text-right mt-2 md:mt-0">
-                <div id="statusFetch" class="text-xs font-bold text-emerald-400">🟢 Terhubung ke Repositori</div>
-                <div id="lastUpdate" class="text-slate-400 text-xs mt-1">Memuat data dari server...</div>
-            </div>
-        </header>
+                <p class="text-slate-400 text-sm mt-2 max-w-lg mx-auto">Sistem integrasi pemantau kuota tiket event, status sold out pertunjukan theater, dan parser dump data JSON dalam satu platform.</p>
+            </header>
 
-        <!-- Visual Auto-Refresh Progress Bar -->
-        <div class="w-full bg-slate-800/40 h-1.5 rounded-full mb-6 overflow-hidden border border-slate-700/30">
-            <div id="refreshProgress" class="bg-gradient-to-r from-rose-500 via-purple-500 to-sky-500 h-full w-0 rounded-full"></div>
+            <!-- Card Grid Menu -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+                
+                <!-- Card 1: Exclusives Monitor -->
+                <div onclick="navigateTo('exclusives')" class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-rose-500/10 hover:border-rose-500/40 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between group">
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition duration-300">
+                            🤝
+                        </div>
+                        <h2 class="text-xl font-bold text-rose-400 mb-2">Tiket Event Exclusives</h2>
+                        <p class="text-slate-400 text-xs leading-relaxed">Pantau secara otomatis & real-time kuota sisa tiket <strong>Meet & Greet, 2-Shot, dan Video Call</strong> per member oshi JKT48 (Auto-refresh 15s).</p>
+                    </div>
+                    <div class="mt-6 text-rose-400 text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition duration-300">
+                        Buka Pemantau <span>➔</span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Theater Live Monitor -->
+                <div onclick="navigateTo('theater')" class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-sky-500/10 hover:border-sky-500/40 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between group">
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition duration-300">
+                            🎭
+                        </div>
+                        <h2 class="text-xl font-bold text-sky-400 mb-2">Tiket Theater Show</h2>
+                        <p class="text-slate-400 text-xs leading-relaxed">Cek ketersediaan tiket pertunjukan theater di <strong>jkt48.com/schedule</strong> berdasarkan show code (misal: SHEB90) secara dinamis.</p>
+                    </div>
+                    <div class="mt-6 text-sky-400 text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition duration-300">
+                        Buka Pemantau <span>➔</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: JSON Reader -->
+                <div onclick="navigateTo('jsonReader')" class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-purple-500/10 hover:border-purple-500/40 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 flex flex-col justify-between group">
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition duration-300">
+                            ⚡
+                        </div>
+                        <h2 class="text-xl font-bold text-purple-400 mb-2">Pembaca Dump JSON</h2>
+                        <p class="text-slate-400 text-xs leading-relaxed">Alternatif tangguh dengan menyalin/menempel (*copy-paste*) dump respon JSON dari Network Tab browser untuk memproses data kuota instan.</p>
+                    </div>
+                    <div class="mt-6 text-purple-400 text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition duration-300">
+                        Buka Pembaca <span>➔</span>
+                    </div>
+                </div>
+
+            </div>
         </div>
 
-        <section class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6 space-y-4">
-            
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-rose-400 mb-2">Pilih Kategori Kebutuhan:</label>
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="setJenisFilter('SEMUA')" id="btn-jns-SEMUA" class="px-4 py-2 rounded-lg text-sm font-bold bg-rose-600 text-white cursor-pointer transition">
-                        ⭐ Semua Benefit
-                    </button>
-                    <button onclick="setJenisFilter('Photocard')" id="btn-jns-Photocard" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 cursor-pointer transition">
-                        🤝 Photocard Only
-                    </button>
-                    <button onclick="setJenisFilter('2-Shot')" id="btn-jns-2-Shot" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 cursor-pointer transition">
-                        📸 2-Shot Only
-                    </button>
-                    <button onclick="setJenisFilter('Video Call')" id="btn-jns-Video Call" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 cursor-pointer transition">
-                        📞 Video Call Only
+
+        <!-- ================= VIEW 1: EXCLUSIVES TICKET MONITOR ================= -->
+        <div id="exclusivesView" class="hidden">
+            <!-- Nav Header -->
+            <button onclick="navigateTo('portal')" class="mb-6 bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition border border-slate-700/40 cursor-pointer flex items-center gap-1">
+                ← Kembali ke Menu Utama
+            </button>
+
+            <header class="mb-4 text-center md:text-left flex flex-col md:flex-row justify-between items-center pb-4">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-rose-500 tracking-wide flex items-center justify-center md:justify-start gap-2">
+                        <img src="https://github.com/Emzyjeppp.png" class="w-8 h-8 rounded-full border border-rose-500 shadow-md" alt="Emzyjeppp Logo">
+                        JKT48 EXCLUSIVE MONITOR
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Sistem Pemantau Otomatis Tiket Event JKT48 (Meet & Greet, 2-Shot & Video Call) oleh <a href="https://github.com/Emzyjeppp" target="_blank" class="text-rose-400 hover:text-rose-300 hover:underline transition font-medium">emzyjeppp</a></p>
+                </div>
+                <div class="text-right mt-2 md:mt-0">
+                    <div id="statusFetch" class="text-xs font-bold text-emerald-400">🟢 Terhubung ke Repositori</div>
+                    <div id="lastUpdate" class="text-slate-400 text-xs mt-1">Memuat data dari server...</div>
+                </div>
+            </header>
+
+            <!-- Visual Auto-Refresh Progress Bar -->
+            <div class="w-full bg-slate-800/40 h-1.5 rounded-full mb-6 overflow-hidden border border-slate-700/30">
+                <div id="refreshProgress" class="bg-gradient-to-r from-rose-500 via-purple-500 to-sky-500 h-full w-0 rounded-full"></div>
+            </div>
+
+            <!-- Controls Panel -->
+            <section class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-rose-400 mb-2">Pilih Kategori Kebutuhan:</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setJenisFilter('SEMUA')" id="btn-jns-SEMUA" class="px-4 py-2 rounded-lg text-sm font-bold bg-rose-600 text-white cursor-pointer transition">
+                            ⭐ Semua Benefit
+                        </button>
+                        <button onclick="setJenisFilter('Photocard')" id="btn-jns-Photocard" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 cursor-pointer transition">
+                            🤝 Photocard Only
+                        </button>
+                        <button onclick="setJenisFilter('2-Shot')" id="btn-jns-2-Shot" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 cursor-pointer transition">
+                            📸 2-Shot Only
+                        </button>
+                        <button onclick="setJenisFilter('Video Call')" id="btn-jns-Video Call" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 cursor-pointer transition">
+                            📞 Video Call Only
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-2">Saring Berdasarkan Event & Lokasi:</label>
+                    <div class="flex flex-wrap gap-2" id="eventFilterContainer">
+                        <button onclick="setEventFilter('SEMUA')" class="px-4 py-1.5 rounded-md text-xs font-bold bg-sky-600 text-white cursor-pointer transition">
+                            Semua Event
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Urutan Tampilan (Sort):</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setUrutanFilter('TERSEDIA')" id="btn-sort-TERSEDIA" class="px-4 py-1.5 rounded-md text-xs font-bold bg-emerald-600 text-white cursor-pointer transition">
+                            📈 Sisa Terkecil (Tersedia Teratas)
+                        </button>
+                        <button onclick="setUrutanFilter('SOLDOUT')" id="btn-sort-SOLDOUT" class="px-4 py-1.5 rounded-md text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-300 cursor-pointer transition">
+                            📉 Sold Out Teratas
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-700/50 flex flex-col sm:flex-row gap-3 justify-between items-center">
+                    <div class="w-full sm:w-auto">
+                        <input type="text" id="searchFilter" oninput="filterData()" placeholder="Cari nama member atau oshi Anda..." class="bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-2 text-sm w-full sm:w-80 focus:outline-none focus:border-rose-500 text-white">
+                    </div>
+                    <button onclick="bacaDataLokal()" class="w-full sm:w-auto text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2.5 rounded-lg transition cursor-pointer font-medium">
+                        🔄 Refresh Tampilan Tabel
                     </button>
                 </div>
-            </div>
+            </section>
 
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-2">Saring Berdasarkan Event & Lokasi:</label>
-                <div class="flex flex-wrap gap-2" id="eventFilterContainer">
-                    <button onclick="setEventFilter('SEMUA')" class="px-4 py-1.5 rounded-md text-xs font-bold bg-sky-600 text-white cursor-pointer transition">
-                        Semua Event
+            <!-- History Log Section -->
+            <section class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-rose-400 mb-3 flex items-center gap-2">
+                    ⏱️ Riwayat Sold Out Tercepat (Global)
+                </h2>
+                <div id="historyLog" class="max-h-40 overflow-y-auto space-y-2 text-xs font-mono text-slate-300 divide-y divide-slate-700/50 pr-2">
+                    <div class="py-1 text-slate-500 italic">Belum ada riwayat tiket sold out yang tercatat. Data akan muncul otomatis saat tiket member mulai habis.</div>
+                </div>
+            </section>
+
+            <!-- Data Table Exclusives -->
+            <main>
+                <div class="overflow-x-auto bg-slate-800/40 backdrop-blur-md rounded-xl shadow-xl border border-slate-700/50">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-700/30 text-slate-300 text-xs font-bold uppercase tracking-wider border-b border-slate-700/50">
+                                <th class="p-4">Event / Lokasi</th>
+                                <th class="p-4">Kategori</th>
+                                <th class="p-4">Sesi</th>
+                                <th class="p-4 text-rose-300">Nama Member</th>
+                                <th class="p-4 text-center">Terjual</th>
+                                <th class="p-4 text-center">Sisa Kuota</th>
+                                <th class="p-4 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="text-sm divide-y divide-slate-700/40">
+                            <tr>
+                                <td colspan="7" class="p-8 text-center text-slate-400">Sedang menyinkronkan data kuota dari repositori...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+
+
+        <!-- ================= VIEW 2: THEATER LIVE MONITOR ================= -->
+        <div id="theaterView" class="hidden">
+            <!-- Nav Header -->
+            <button onclick="navigateTo('portal')" class="mb-6 bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition border border-slate-700/40 cursor-pointer flex items-center gap-1">
+                ← Kembali ke Menu Utama
+            </button>
+
+            <header class="mb-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center pb-4 border-b border-slate-700/60">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-sky-500 tracking-wide flex items-center justify-center md:justify-start gap-2">
+                        🎭 JKT48 THEATER MONITOR
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Pantau ketersediaan tiket & status sold out pertunjukan theater secara real-time</p>
+                </div>
+                <div class="text-right mt-2 md:mt-0">
+                    <div id="theaterStatus" class="text-xs font-bold text-slate-400">Menunggu Input Show Code</div>
+                </div>
+            </header>
+
+            <!-- Show Code Input Controls -->
+            <section class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6">
+                <div class="flex flex-col md:flex-row gap-4 items-end">
+                    <div class="w-full md:w-1/2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-2">Masukkan Kode Show Theater (Show Code):</label>
+                        <input type="text" id="theaterCodeInput" placeholder="Contoh: SHEB90 (Lihat URL detail show di website JKT48)" class="bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 text-sm w-full focus:outline-none focus:border-sky-500 text-white font-mono uppercase">
+                    </div>
+                    <button onclick="muatKuotaTheater()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-6 rounded-lg shadow transition cursor-pointer text-sm w-full md:w-auto">
+                        ⚡ Periksa Kuota Show
                     </button>
                 </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Urutan Tampilan (Sort):</label>
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="setUrutanFilter('TERSEDIA')" id="btn-sort-TERSEDIA" class="px-4 py-1.5 rounded-md text-xs font-bold bg-emerald-600 text-white cursor-pointer transition">
-                        📈 Sisa Terkecil (Tersedia Teratas)
-                    </button>
-                    <button onclick="setUrutanFilter('SOLDOUT')" id="btn-sort-SOLDOUT" class="px-4 py-1.5 rounded-md text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-300 cursor-pointer transition">
-                        📉 Sold Out Teratas
-                    </button>
+                <div class="text-xs text-slate-400 mt-2">
+                    💡 <strong>Tips:</strong> Anda bisa mendapatkan Show Code dari URL halaman detail tiket theater di website resmi. Contoh: <code>https://jkt48.com/theater/schedule/id/3178?code=SHEB90</code>, kodenya adalah <strong>SHEB90</strong>.
                 </div>
-            </div>
+            </section>
 
-            <div class="pt-2 border-t border-slate-700/50 flex flex-col sm:flex-row gap-3 justify-between items-center">
-                <div class="w-full sm:w-auto">
-                    <input type="text" id="searchFilter" oninput="filterData()" placeholder="Cari nama member atau oshi Anda..." class="bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-2 text-sm w-full sm:w-80 focus:outline-none focus:border-rose-500 text-white">
+            <!-- Table Theater Live Data -->
+            <main id="theaterDashboardSection" class="hidden">
+                <div class="overflow-x-auto bg-slate-800/40 backdrop-blur-md rounded-xl shadow-xl border border-slate-700/50">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-700/30 text-slate-300 text-xs font-bold uppercase tracking-wider border-b border-slate-700/50">
+                                <th class="p-4">Show / Setlist</th>
+                                <th class="p-4">Tanggal & Jam Show</th>
+                                <th class="p-4">Kategori Tiket</th>
+                                <th class="p-4 text-center">Periode Penjualan</th>
+                                <th class="p-4 text-center">Kuota Awal</th>
+                                <th class="p-4 text-center">Metode</th>
+                                <th class="p-4 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="theaterTableBody" class="text-sm divide-y divide-slate-700/40">
+                        </tbody>
+                    </table>
                 </div>
-                <button onclick="bacaDataLokal()" class="w-full sm:w-auto text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2.5 rounded-lg transition cursor-pointer font-medium">
-                    🔄 Refresh Tampilan Tabel
-                </button>
-            </div>
-        </section>
+            </main>
+        </div>
 
-        <!-- Bagian History / Transaksi Terkini -->
-        <section class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6">
-            <h2 class="text-sm font-bold uppercase tracking-wider text-rose-400 mb-3 flex items-center gap-2">
-                ⏱️ Riwayat Sold Out Tercepat (Global)
-            </h2>
-            <div id="historyLog" class="max-h-40 overflow-y-auto space-y-2 text-xs font-mono text-slate-300 divide-y divide-slate-700/50 pr-2">
-                <div class="py-1 text-slate-500 italic">Belum ada riwayat tiket sold out yang tercatat. Data akan muncul otomatis saat tiket member mulai habis.</div>
-            </div>
-        </section>
 
-        <main>
-            <div class="overflow-x-auto bg-slate-800/40 backdrop-blur-md rounded-xl shadow-xl border border-slate-700/50">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-700/30 text-slate-300 text-xs font-bold uppercase tracking-wider border-b border-slate-700/50">
-                            <th class="p-4">Event / Lokasi</th>
-                            <th class="p-4">Kategori</th>
-                            <th class="p-4">Sesi</th>
-                            <th class="p-4 text-rose-300">Nama Member</th>
-                            <th class="p-4 text-center">Terjual</th>
-                            <th class="p-4 text-center">Sisa Kuota</th>
-                            <th class="p-4 text-center">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody" class="text-sm divide-y divide-slate-700/40">
-                        <tr>
-                            <td colspan="7" class="p-8 text-center text-slate-400">Sedang menyinkronkan data kuota dari repositori...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </main>
+        <!-- ================= VIEW 3: DUMP JSON PARSER ================= -->
+        <div id="jsonReaderView" class="hidden">
+            <!-- Nav Header -->
+            <button onclick="navigateTo('portal')" class="mb-6 bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition border border-slate-700/40 cursor-pointer flex items-center gap-1">
+                ← Kembali ke Menu Utama
+            </button>
 
-        <!-- Premium Footer & Disclaimer -->
-        <footer class="mt-12 mb-6 text-center text-xs text-slate-500 space-y-2 border-t border-slate-800/80 pt-6">
-            <p>
-                Dibuat dengan 💖 oleh 
-                <a href="https://github.com/Emzyjeppp" target="_blank" class="text-rose-500/80 hover:text-rose-400 font-medium transition hover:underline">emzyjeppp</a>.
-            </p>
-            <p class="text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                Pernyataan Penyangkalan (Disclaimer): Situs pemantau ini merupakan proyek independen buatan penggemar (fan-made) untuk keperluan analisis pribadi dan tidak memiliki hubungan kerja sama, afiliasi, atau disponsori secara resmi oleh pihak JKT48 Operational (JOT).
-            </p>
-        </footer>
+            <header class="mb-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center pb-4 border-b border-slate-700/60">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-purple-500 tracking-wide flex items-center justify-center md:justify-start gap-2">
+                        ⚡ DUMP JSON PARSER
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Proses kuota tiket event & status sold out tiket theater via paste JSON mentah</p>
+                </div>
+                <div id="jsonLastUpdate" class="text-slate-400 text-xs mt-2 md:mt-0"></div>
+            </header>
+
+            <!-- Paste Input Controls -->
+            <section class="bg-slate-800/40 backdrop-blur-md p-5 rounded-xl shadow-xl border border-slate-700/50 mb-6">
+                <label class="block text-xs font-bold uppercase tracking-wider text-purple-400 mb-2">Tempel (Paste) Response JSON dari Network Tab di sini:</label>
+                <textarea id="jsonInput" rows="5" class="w-full bg-slate-900/60 border border-slate-600 rounded-lg p-3 text-sm font-mono text-green-400 focus:outline-none focus:border-purple-500" placeholder='{"status": true, "data": [...]} atau JSON Detail Show Theater...'></textarea>
+                
+                <div class="mt-4 flex flex-col sm:flex-row gap-3 justify-between items-center">
+                    <button onclick="prosesDump()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-lg shadow transition cursor-pointer text-sm w-full sm:w-auto">
+                        ⚡ Proses & Urutkan Data
+                    </button>
+                    
+                    <input type="text" id="jsonSearchFilter" oninput="filterJsonData()" placeholder="Cari member, kategori, atau tanggal..." class="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-sm w-full sm:w-72 focus:outline-none focus:border-purple-500 hidden">
+                </div>
+            </section>
+
+            <!-- Table Dump Output -->
+            <main id="jsonDashboardSection" class="hidden">
+                <div class="overflow-x-auto bg-slate-800/40 backdrop-blur-md rounded-xl shadow-xl border border-slate-700/50">
+                    <table class="w-full text-left border-collapse">
+                        <thead id="jsonTableHeader">
+                            <!-- Kolom diubah dinamis via JS -->
+                        </thead>
+                        <tbody id="jsonTableBody" class="text-sm divide-y divide-slate-700/40">
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+
     </div>
 
+    <!-- Sticky Footer (Credits & Disclaimer) -->
+    <footer class="mt-12 text-center text-xs text-slate-500 space-y-2 border-t border-slate-800/80 pt-6 max-w-6xl mx-auto w-full pb-4">
+        <p>
+            Dibuat dengan 💖 oleh 
+            <a href="https://github.com/Emzyjeppp" target="_blank" class="text-rose-500/80 hover:text-rose-400 font-medium transition hover:underline">emzyjeppp</a>.
+        </p>
+        <p class="text-slate-600 max-w-2xl mx-auto leading-relaxed">
+            Pernyataan Penyangkalan (Disclaimer): Situs pemantau ini merupakan proyek independen buatan penggemar (fan-made) untuk keperluan analisis pribadi dan tidak memiliki hubungan kerja sama, afiliasi, atau disponsori secara resmi oleh pihak JKT48 Operational (JOT).
+        </p>
+    </footer>
+
+    <!-- load app script -->
     <script src="script.js"></script>
 </body>
 </html>

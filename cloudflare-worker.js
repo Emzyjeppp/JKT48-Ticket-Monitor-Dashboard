@@ -81,7 +81,33 @@ async function handleRequest(request, event) {
       return res.json();
     }
 
-    // 1. Ambil daftar eksklusif aktif dari API JKT48
+    // 1. Rute proxy detail show theater: /api/theater?code=SHEB90
+    if (cacheUrl.pathname === '/api/theater') {
+      const code = cacheUrl.searchParams.get("code");
+      if (!code) {
+        return new Response(JSON.stringify({ error: "Parameter 'code' dibutuhkan." }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+      try {
+        const showData = await fetchJson(`https://jkt48.com/api/v1/theater-shows/${code}?lang=id`);
+        return new Response(JSON.stringify(showData), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=60'
+          }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+    }
+
+    // 2. Ambil daftar eksklusif aktif dari API JKT48
     const listRes = await fetchJson("https://jkt48.com/api/v1/exclusives?lang=id");
     const exclusives = listRes.data || [];
 
