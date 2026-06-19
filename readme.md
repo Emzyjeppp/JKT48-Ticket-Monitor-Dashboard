@@ -40,6 +40,7 @@ Dashboard ini menggunakan arsitektur hybrid yang efisien dan gratis penuh:
 │   └── wrangler.toml
 ├── index.html              # Template Frontend (SPA Dashboard)
 ├── script.js               # Logika Frontend (Pembaruan & Caching)
+├── security.js             # Sistem Verifikasi Pertanyaan Keamanan
 ├── GetDataByJSON.html      # Halaman Dump JSON Parser (Tailwind CSS)
 └── README.md               # Dokumentasi Proyek
 ```
