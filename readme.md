@@ -34,10 +34,14 @@ Dashboard ini menggunakan arsitektur hybrid yang efisien dan gratis penuh:
 ## 🛠️ Struktur Repositori
 
 ```text
-├── index.html             # Dashboard utama (Frontend - GitHub Pages)
-├── cloudflare-worker.js   # Script serverless scraper & cache API (Cloudflare Worker)
-├── wrangler.json          # File konfigurasi deploy CLI Wrangler
-└── README.md              # Dokumentasi proyek ini
+├── assets/                 # Aset media lokal
+├── backend/                # Backend API (Cloudflare Worker)
+│   ├── cloudflare-worker.js
+│   └── wrangler.toml
+├── index.html              # Template Frontend (SPA Dashboard)
+├── script.js               # Logika Frontend (Pembaruan & Caching)
+├── GetDataByJSON.html      # Halaman Dump JSON Parser (Tailwind CSS)
+└── README.md               # Dokumentasi Proyek
 ```
 
 ---
@@ -45,8 +49,11 @@ Dashboard ini menggunakan arsitektur hybrid yang efisien dan gratis penuh:
 ## 💻 Cara Deploy Mandiri
 
 ### 1. Deploy API (Cloudflare Workers)
-Buka terminal Anda di dalam folder proyek ini dan jalankan perintah:
+Buka terminal Anda di dalam folder `backend/` proyek ini dan jalankan perintah:
 ```bash
+# Pindah ke direktori backend
+cd backend
+
 # Login ke akun Cloudflare Anda via browser
 npx wrangler login
 
@@ -56,16 +63,16 @@ npx wrangler deploy
 *Setelah deploy selesai, salin URL Worker yang diberikan di terminal (misal: `https://jkt48-monitor-api.username.workers.dev`).*
 
 ### 2. Hubungkan Frontend
-Buka berkas `index.html` dan perbarui nilai variabel `API_URL` pada baris ke-99 dengan URL Worker Anda:
+Buka berkas `script.js` dan perbarui nilai variabel `API_URL` pada baris ke-14 dengan URL Worker Anda:
 ```javascript
 const API_URL = 'https://jkt48-monitor-api.username.workers.dev';
 ```
 
-### 3. Deploy Frontend (GitHub Pages)
+### 3. Deploy Frontend (GitHub Pages / Vercel)
 Commit dan push perubahan ke repositori baru Anda untuk mengaktifkan halaman web:
 ```bash
 git add .
 git commit -m "Deploy setup monitor JKT48"
 git push origin main
 ```
-*Aktifkan GitHub Pages di tab **Settings > Pages** repositori Anda dan arahkan ke branch `main`.*
+*Aktifkan GitHub Pages di tab **Settings > Pages** repositori Anda atau hubungkan ke Vercel untuk deployment otomatis.*
