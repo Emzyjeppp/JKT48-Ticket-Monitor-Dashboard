@@ -168,7 +168,18 @@ async function handleRequest(request, event) {
           return new Response("Image not found", { status: 404 });
         }
         const newHeaders = new Headers();
-        newHeaders.set('Content-Type', imageRes.headers.get('Content-Type') || 'image/jpeg');
+        let contentType = imageRes.headers.get('Content-Type') || 'image/jpeg';
+        if (contentType === 'application/octet-stream' || !contentType.startsWith('image/')) {
+          const fnLower = filename.toLowerCase();
+          if (fnLower.endsWith('.png')) {
+            contentType = 'image/png';
+          } else if (fnLower.endsWith('.webp')) {
+            contentType = 'image/webp';
+          } else {
+            contentType = 'image/jpeg';
+          }
+        }
+        newHeaders.set('Content-Type', contentType);
         newHeaders.set('Access-Control-Allow-Origin', '*');
         newHeaders.set('Cache-Control', 'public, max-age=604800'); // Cache 7 hari
         return new Response(imageRes.body, {

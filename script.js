@@ -24,9 +24,14 @@ async function muatDaftarMember() {
             if (dataJson && dataJson.data && Array.isArray(dataJson.data)) {
                 dataJson.data.forEach(m => {
                     if (m.name && m.photo) {
-                        const parts = m.photo.split('/');
-                        const filename = parts[parts.length - 1];
-                        const proxiedPhoto = API_URL + '/api/member-image?filename=' + filename;
+                        let relativePath = '';
+                        if (m.photo.includes('jkt48-member/')) {
+                            relativePath = m.photo.split('jkt48-member/')[1];
+                        } else {
+                            const parts = m.photo.split('/');
+                            relativePath = parts[parts.length - 1];
+                        }
+                        const proxiedPhoto = API_URL + '/api/member-image?filename=' + encodeURIComponent(relativePath);
                         memberPhotosMap.set(m.name.toLowerCase().trim(), proxiedPhoto);
                     }
                 });
