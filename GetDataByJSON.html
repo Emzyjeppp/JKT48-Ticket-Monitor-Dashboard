@@ -108,12 +108,25 @@
 
             sessionsArray.forEach(sesi => {
                 const labelSesi = sesi.label || 'Sesi';
-                const sesiSingkat = labelSesi.split('·')[0].trim();
+                let displaySesi = labelSesi;
+
+                if (sesi.date) {
+                    const dateObj = new Date(sesi.date);
+                    const dateJakarta = new Date(dateObj.toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
+                    if (!isNaN(dateJakarta.getTime())) {
+                        const day = String(dateJakarta.getDate()).padStart(2, '0');
+                        const month = String(dateJakarta.getMonth() + 1).padStart(2, '0');
+                        const dateStr = `${day}/${month}`;
+                        if (!labelSesi.includes('·') && !labelSesi.includes('/')) {
+                            displaySesi = `${labelSesi} · ${dateStr}`;
+                        }
+                    }
+                }
 
                 if(sesi.session_members && Array.isArray(sesi.session_members)) {
                     sesi.session_members.forEach(m => {
                         semuaMasterData.push({
-                            sesi: sesiSingkat,
+                            sesi: displaySesi,
                             jalur: m.label || '-',
                             nama: m.member_name,
                             terjual: m.tickets_sold,

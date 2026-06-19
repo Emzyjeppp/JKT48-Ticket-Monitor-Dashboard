@@ -175,13 +175,26 @@ async function handleRequest(request, event) {
 
       if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
         jsonData.data.forEach(sesi => {
-          const labelSesi = sesi.label || 'Sesi'
-          const sesiSingkat = labelSesi.split('·')[0].trim()
+          const labelSesi = sesi.label || 'Sesi';
+          let displaySesi = labelSesi;
+          
+          if (sesi.date) {
+            const dateObj = new Date(sesi.date);
+            const dateJakarta = new Date(dateObj.toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
+            if (!isNaN(dateJakarta.getTime())) {
+              const day = String(dateJakarta.getDate()).padStart(2, '0');
+              const month = String(dateJakarta.getMonth() + 1).padStart(2, '0');
+              const dateStr = `${day}/${month}`;
+              if (!labelSesi.includes('·') && !labelSesi.includes('/')) {
+                displaySesi = `${labelSesi} · ${dateStr}`;
+              }
+            }
+          }
           
           if (sesi.session_members) {
             sesi.session_members.forEach(m => {
               output.push({
-                sesi: sesiSingkat,
+                sesi: displaySesi,
                 event: namaEvent,
                 jenis: jenisBenefit,
                 jalur: m.label || '-',
