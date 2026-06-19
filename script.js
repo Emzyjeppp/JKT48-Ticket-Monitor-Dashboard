@@ -13,6 +13,27 @@ let semuaJsonMasterData = [];
 // URL Cloudflare Worker API
 const API_URL = 'https://jkt48-monitor-api.jefryoconner49.workers.dev';
 
+// Map foto profil member (name -> photo_url)
+let memberPhotosMap = new Map();
+
+async function muatDaftarMember() {
+    try {
+        const response = await fetch(API_URL + '/api/members?_cb=' + new Date().getTime());
+        if (response.ok) {
+            const dataJson = await response.json();
+            if (dataJson && dataJson.data && Array.isArray(dataJson.data)) {
+                dataJson.data.forEach(m => {
+                    if (m.name) {
+                        memberPhotosMap.set(m.name.toLowerCase().trim(), m.photo);
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Gagal memuat foto profil member:", error.message);
+    }
+}
+
 // ==========================================
 // SPA NAVIGATION
 // ==========================================
@@ -291,12 +312,24 @@ function renderTabel(data) {
             ? `<button onclick="toggleOshi('${item.nama}')" class="text-amber-400 hover:text-amber-300 mr-2 focus:outline-none transition cursor-pointer text-base select-none">⭐</button>`
             : `<button onclick="toggleOshi('${item.nama}')" class="text-slate-600 hover:text-amber-400 mr-2 focus:outline-none transition cursor-pointer text-base select-none">☆</button>`;
 
+        const photoUrl = memberPhotosMap.get(item.nama.toLowerCase().trim());
+        let avatarHtml = '';
+        if (photoUrl) {
+            avatarHtml = `<img src="${photoUrl}" alt="${item.nama}" class="w-8 h-8 rounded-full object-cover border border-slate-700/60 shadow-sm mr-3 hover:scale-110 transition duration-300 select-none" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+            // fall back div if image fails loading
+            const initial = item.nama ? item.nama.charAt(0).toUpperCase() : '?';
+            avatarHtml += `<div style="display:none;" class="w-8 h-8 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-xs border border-slate-600 shadow-sm mr-3 select-none">${initial}</div>`;
+        } else {
+            const initial = item.nama ? item.nama.charAt(0).toUpperCase() : '?';
+            avatarHtml = `<div class="w-8 h-8 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-xs border border-slate-600 shadow-sm mr-3 select-none">${initial}</div>`;
+        }
+
         rows.push(`
             <tr class="${rowBg}">
                 <td class="p-4 font-bold text-xs text-sky-400 uppercase tracking-wider">${item.event}</td>
                 <td class="p-4">${jenisBadge}</td>
                 <td class="p-4 font-medium text-slate-300 text-xs">${item.sesi}</td>
-                <td class="p-4 font-bold text-slate-100 flex items-center">${starButton}<div>${item.nama} <span class="block text-slate-400 font-normal text-xs mt-0.5">${item.jalur}</span></div></td>
+                <td class="p-4 font-bold text-slate-100 flex items-center">${starButton}${avatarHtml}<div>${item.nama} <span class="block text-slate-400 font-normal text-xs mt-0.5">${item.jalur}</span></div></td>
                 <td class="p-4 text-center font-mono font-semibold text-slate-400">${item.terjual}</td>
                 <td class="p-4 text-center font-mono font-bold text-emerald-400 text-base">${item.sisa}</td>
                 <td class="p-4 text-center">${statusBadge}</td>
@@ -326,8 +359,18 @@ function renderHistory(historyList) {
             jenisBadge = `<span class="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-teal-500/10 text-teal-400 border border-teal-500/30 whitespace-nowrap">📞 VC</span>`;
         }
 
+        const photoUrl = memberPhotosMap.get(item.nama.toLowerCase().trim());
+        let avatarHtml = '';
+        if (photoUrl) {
+            avatarHtml = `<img src="${photoUrl}" alt="${item.nama}" class="w-5 h-5 rounded-full object-cover border border-slate-700/60 shadow-sm inline-block select-none" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">`;
+            const initial = item.nama ? item.nama.charAt(0).toUpperCase() : '?';
+            avatarHtml += `<div style="display:none;" class="w-5 h-5 rounded-full bg-slate-700 text-slate-300 inline-flex items-center justify-center font-bold text-[9px] border border-slate-600 shadow-sm select-none">${initial}</div>`;
+        } else {
+            const initial = item.nama ? item.nama.charAt(0).toUpperCase() : '?';
+            avatarHtml = `<div class="w-5 h-5 rounded-full bg-slate-700 text-slate-300 inline-flex items-center justify-center font-bold text-[9px] border border-slate-600 shadow-sm select-none">${initial}</div>`;
+        }
+
         const detailEvent = `[${item.event}]`;
-        const detailSesi = `${item.sesi} - ${item.nama} (${item.jalur})`;
         const detailJumlah = `telah HABIS (SOLD OUT)!`;
 
         return `
@@ -336,7 +379,10 @@ function renderHistory(historyList) {
                     <span class="text-slate-500 font-semibold">[${item.waktu}]</span>
                     ${badge}
                     ${jenisBadge}
-                    <span class="${textClass}">${detailSesi} ${detailJumlah}</span>
+                    <div class="flex items-center gap-1.5">
+                        ${avatarHtml}
+                        <span class="${textClass}">${item.sesi} - ${item.nama} (${item.jalur}) ${detailJumlah}</span>
+                    </div>
                 </div>
                 <div class="text-[10px] text-slate-500">${detailEvent}</div>
             </div>
@@ -755,11 +801,25 @@ function bukaModalMember() {
 
         const bdayIcon = isBirthdayMember ? ' 🎂' : '';
 
+        const photoUrl = memberPhotosMap.get(m.name.toLowerCase().trim());
+        let avatarHtml = '';
+        if (photoUrl) {
+            avatarHtml = `<img src="${photoUrl}" alt="${m.name}" class="w-10 h-10 rounded-full object-cover border border-slate-700/60 shadow-sm flex-shrink-0 select-none" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+            const initial = m.name ? m.name.charAt(0).toUpperCase() : '?';
+            avatarHtml += `<div style="display:none;" class="w-10 h-10 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-sm border border-slate-700 shadow-sm flex-shrink-0 select-none">${initial}</div>`;
+        } else {
+            const initial = m.name ? m.name.charAt(0).toUpperCase() : '?';
+            avatarHtml = `<div class="w-10 h-10 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-sm border border-slate-700 shadow-sm flex-shrink-0 select-none">${initial}</div>`;
+        }
+
         memberCards.push(`
-            <div class="border rounded-xl p-3 flex flex-col justify-between gap-1.5 shadow-sm hover:border-slate-600 transition duration-300 ${borderHighlight}">
-                <div class="font-bold text-xs leading-snug">${m.name}${bdayIcon}</div>
-                <div class="flex items-center mt-1">
-                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border ${teamBadgeColor}">${team}</span>
+            <div class="border rounded-xl p-3 flex items-center gap-3 shadow-sm hover:border-slate-600 transition duration-300 ${borderHighlight}">
+                ${avatarHtml}
+                <div class="flex flex-col justify-between gap-1">
+                    <div class="font-bold text-xs leading-snug">${m.name}${bdayIcon}</div>
+                    <div class="flex items-center">
+                        <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border ${teamBadgeColor}">${team}</span>
+                    </div>
                 </div>
             </div>
         `);
@@ -1034,11 +1094,22 @@ function renderJsonTabel(data) {
                 rowBg = "bg-amber-950/10 hover:bg-amber-950/20 text-amber-100";
             }
 
+            const photoUrl = memberPhotosMap.get(item.nama.toLowerCase().trim());
+            let avatarHtml = '';
+            if (photoUrl) {
+                avatarHtml = `<img src="${photoUrl}" alt="${item.nama}" class="w-8 h-8 rounded-full object-cover border border-slate-700/60 shadow-sm mr-3 hover:scale-110 transition duration-300 select-none" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+                const initial = item.nama ? item.nama.charAt(0).toUpperCase() : '?';
+                avatarHtml += `<div style="display:none;" class="w-8 h-8 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-xs border border-slate-600 shadow-sm mr-3 select-none">${initial}</div>`;
+            } else {
+                const initial = item.nama ? item.nama.charAt(0).toUpperCase() : '?';
+                avatarHtml = `<div class="w-8 h-8 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-xs border border-slate-600 shadow-sm mr-3 select-none">${initial}</div>`;
+            }
+
             row = `
                 <tr class="${rowBg}">
                     <td class="p-4 font-medium text-slate-300">${item.sesi}</td>
                     <td class="p-4 text-slate-400 text-xs">${item.jalur}</td>
-                    <td class="p-4 font-bold text-slate-200">${item.nama}</td>
+                    <td class="p-4 font-bold text-slate-200 flex items-center">${avatarHtml}<div>${item.nama}</div></td>
                     <td class="p-4 text-center font-mono font-semibold">${item.terjual}</td>
                     <td class="p-4 text-center font-mono font-bold text-emerald-400">${item.sisa}</td>
                     <td class="p-4 text-center">${statusBadge}</td>
@@ -1070,7 +1141,13 @@ function filterJsonData() {
 }
 
 // Navigasi ke portal default saat halaman selesai dimuat pertama kali
-window.onload = function() {
+window.onload = async function() {
     navigateTo('portal');
     updateBentoStats();
+    await muatDaftarMember();
+    // Jika user langsung berpindah ke exclusives, render ulang setelah foto termuat
+    const exclusivesView = document.getElementById('exclusivesView');
+    if (exclusivesView && !exclusivesView.classList.contains('hidden')) {
+        filterData();
+    }
 };

@@ -131,6 +131,25 @@ async function handleRequest(request, event) {
       }
     }
 
+    // 1c. Rute proxy daftar member: /api/members
+    if (cacheUrl.pathname === '/api/members') {
+      try {
+        const membersData = await fetchJson('https://jkt48.com/api/v1/members?lang=id');
+        return new Response(JSON.stringify(membersData), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=3600'
+          }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+    }
+
 
 
     // 2. Ambil daftar eksklusif aktif dari API JKT48
