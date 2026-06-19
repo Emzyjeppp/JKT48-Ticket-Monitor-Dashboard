@@ -23,8 +23,11 @@ async function muatDaftarMember() {
             const dataJson = await response.json();
             if (dataJson && dataJson.data && Array.isArray(dataJson.data)) {
                 dataJson.data.forEach(m => {
-                    if (m.name) {
-                        memberPhotosMap.set(m.name.toLowerCase().trim(), m.photo);
+                    if (m.name && m.photo) {
+                        const parts = m.photo.split('/');
+                        const filename = parts[parts.length - 1];
+                        const proxiedPhoto = API_URL + '/api/member-image?filename=' + filename;
+                        memberPhotosMap.set(m.name.toLowerCase().trim(), proxiedPhoto);
                     }
                 });
             }

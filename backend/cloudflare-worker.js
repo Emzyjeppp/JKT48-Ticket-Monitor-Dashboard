@@ -150,6 +150,36 @@ async function handleRequest(request, event) {
       }
     }
 
+    // 1d. Rute proxy foto member: /api/member-image?filename=X
+    if (cacheUrl.pathname === '/api/member-image') {
+      const filename = cacheUrl.searchParams.get("filename");
+      if (!filename) {
+        return new Response("Missing filename parameter", { status: 400 });
+      }
+      try {
+        const imageUrl = `https://jkt48.com/api/v1/storages/media/jkt48-member/${filename}`;
+        const imageRes = await fetch(imageUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Referer': 'https://jkt48.com/'
+          }
+        });
+        if (!imageRes.ok) {
+          return new Response("Image not found", { status: 404 });
+        }
+        const newHeaders = new Headers();
+        newHeaders.set('Content-Type', imageRes.headers.get('Content-Type') || 'image/jpeg');
+        newHeaders.set('Access-Control-Allow-Origin', '*');
+        newHeaders.set('Cache-Control', 'public, max-age=604800'); // Cache 7 hari
+        return new Response(imageRes.body, {
+          status: 200,
+          headers: newHeaders
+        });
+      } catch (err) {
+        return new Response(err.message, { status: 500 });
+      }
+    }
+
 
 
     // 2. Ambil daftar eksklusif aktif dari API JKT48
