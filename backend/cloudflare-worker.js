@@ -1,4 +1,6 @@
 // C:\Users\jefry\.gemini\antigravity\scratch\jkt48-monitor\cloudflare-worker.js
+let inMemoryState = null;
+
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request, event))
 })
@@ -349,7 +351,29 @@ async function handleRequest(request, event) {
     // 2. Ambil daftar eksklusif aktif dari API JKT48 dan detail kuota secara paralel
     let finalData;
 
-    // Cek cooldown cache KV terlebih dahulu (60 detik = 60000 ms)
+    // Cooldown Period: 120 detik (2 menit)
+    const cooldownPeriod = 120000;
+    const nowEpoch = Date.now();
+
+    // 1. Cek in-memory cache terlebih dahulu (100% gratis & super cepat)
+    if (inMemoryState && (nowEpoch - inMemoryState.last_updated_epoch < cooldownPeriod)) {
+      finalData = {
+        last_updated: inMemoryState.last_updated_time,
+        data: inMemoryState.data,
+        history: inMemoryState.history,
+        is_fallback: false,
+        is_cached: true
+      };
+      return new Response(JSON.stringify(finalData), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=15'
+        }
+      });
+    }
+
+    // 2. Cek KV database jika in-memory tidak tersedia/kadaluarsa
     let cachedOutput = [];
     let cachedHistory = [];
     let cachedTime = "";
@@ -357,20 +381,22 @@ async function handleRequest(request, event) {
 
     if (typeof JKT48_DB !== 'undefined') {
       try {
-        lastUpdatedEpoch = parseInt(await JKT48_DB.get("last_updated_time_epoch")) || 0;
-        cachedOutput = await JKT48_DB.get("last_snapshot", "json") || [];
-        cachedHistory = await JKT48_DB.get("history", "json") || [];
-        cachedTime = await JKT48_DB.get("last_updated_time") || "";
+        const exclusivesState = await JKT48_DB.get("exclusives_state", "json");
+        if (exclusivesState) {
+          lastUpdatedEpoch = exclusivesState.last_updated_epoch || 0;
+          cachedOutput = exclusivesState.data || [];
+          cachedHistory = exclusivesState.history || [];
+          cachedTime = exclusivesState.last_updated_time || "";
+          
+          // Sinkronkan ke in-memory agar request berikutnya dilayani dari RAM
+          inMemoryState = exclusivesState;
+        }
       } catch (dbErr) {
         console.error("Gagal membaca KV awal:", dbErr.message);
       }
     }
 
-    const cooldownPeriod = 60000; // 60 detik cache cooldown
-    const nowEpoch = Date.now();
-
     if (nowEpoch - lastUpdatedEpoch < cooldownPeriod && cachedOutput.length > 0) {
-      // Sajikan dari cache KV secara transparan (sebagai data sinkron hasil cache)
       finalData = {
         last_updated: cachedTime,
         data: cachedOutput,
@@ -467,10 +493,11 @@ async function handleRequest(request, event) {
       let history = [];
       if (typeof JKT48_DB !== 'undefined') {
         try {
-          let lastSnapshot = await JKT48_DB.get("last_snapshot", "json");
+          // Gunakan cachedOutput (snapshot sebelumnya yang dibaca di awal dari exclusives_state)
+          let lastSnapshot = cachedOutput;
           let transactions = [];
 
-          if (lastSnapshot) {
+          if (lastSnapshot && lastSnapshot.length > 0) {
             const lastMap = new Map();
             lastSnapshot.forEach(item => {
               const key = `${item.event}-${item.jenis}-${item.sesi}-${item.nama}-${item.jalur}`;
@@ -499,16 +526,11 @@ async function handleRequest(request, event) {
             });
           }
 
-          if (output.length > 0) {
-            await JKT48_DB.put("last_snapshot", JSON.stringify(output));
-          }
-
           if (transactions.length > 0) {
-            let oldHistory = await JKT48_DB.get("history", "json") || [];
+            let oldHistory = cachedHistory;
             history = [...transactions, ...oldHistory].slice(0, 50);
-            await JKT48_DB.put("history", JSON.stringify(history));
           } else {
-            history = await JKT48_DB.get("history", "json") || [];
+            history = cachedHistory;
           }
         } catch (dbErr) {
           console.error("Gagal memproses database KV:", dbErr.message);
@@ -528,12 +550,20 @@ async function handleRequest(request, event) {
       });
       const waktuWIB = formatter.format(new Date()) + ' WIB';
 
+      // Update in-memory state
+      inMemoryState = {
+        last_updated_epoch: Date.now(),
+        last_updated_time: waktuWIB,
+        data: output,
+        history: history
+      };
+
+      // Simpan hanya satu objek terpadu ke exclusives_state
       if (typeof JKT48_DB !== 'undefined' && output.length > 0) {
         try {
-          await JKT48_DB.put("last_updated_time", waktuWIB);
-          await JKT48_DB.put("last_updated_time_epoch", Date.now().toString());
+          await JKT48_DB.put("exclusives_state", JSON.stringify(inMemoryState));
         } catch (dbErr) {
-          console.error("Gagal menyimpan metadata update ke KV:", dbErr.message);
+          console.error("Gagal menyimpan exclusives_state ke KV:", dbErr.message);
         }
       }
 
@@ -562,11 +592,19 @@ async function handleRequest(request, event) {
       let cachedHistory = [];
       let cachedTime = "Tidak tersedia";
 
-      if (typeof JKT48_DB !== 'undefined') {
+      // Gunakan in-memory state jika tersedia
+      if (inMemoryState) {
+        cachedOutput = inMemoryState.data || [];
+        cachedHistory = inMemoryState.history || [];
+        cachedTime = inMemoryState.last_updated_time || "Menggunakan data cache terakhir (Offline)";
+      } else if (typeof JKT48_DB !== 'undefined') {
         try {
-          cachedOutput = await JKT48_DB.get("last_snapshot", "json") || [];
-          cachedHistory = await JKT48_DB.get("history", "json") || [];
-          cachedTime = await JKT48_DB.get("last_updated_time") || "Menggunakan data cache terakhir (Offline)";
+          const exclusivesState = await JKT48_DB.get("exclusives_state", "json");
+          if (exclusivesState) {
+            cachedOutput = exclusivesState.data || [];
+            cachedHistory = exclusivesState.history || [];
+            cachedTime = exclusivesState.last_updated_time || "Menggunakan data cache terakhir (Offline)";
+          }
         } catch (dbErr) {
           console.error("Gagal mengambil fallback dari KV:", dbErr.message);
         }
