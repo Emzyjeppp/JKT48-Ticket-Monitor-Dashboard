@@ -500,9 +500,7 @@ async function handleRequest(request, event) {
           }
 
           if (output.length > 0) {
-            if (!lastSnapshot || transactions.length > 0) {
-              await JKT48_DB.put("last_snapshot", JSON.stringify(output));
-            }
+            await JKT48_DB.put("last_snapshot", JSON.stringify(output));
           }
 
           if (transactions.length > 0) {
