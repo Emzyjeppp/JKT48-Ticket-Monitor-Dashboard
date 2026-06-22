@@ -90,10 +90,31 @@ async function handleRequest(request, event) {
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         });
       }
+      
+      // Coba ambil dari KV cache jika masih di bawah 5 menit (300000 ms)
+      if (typeof JKT48_DB !== 'undefined') {
+        try {
+          const cachedShow = await JKT48_DB.get(`theater_${code}`, "json");
+          const cachedEpoch = parseInt(await JKT48_DB.get(`theater_epoch_${code}`)) || 0;
+          if (cachedShow && (Date.now() - cachedEpoch < 300000)) {
+            return new Response(JSON.stringify({ ...cachedShow, is_fallback: false, is_cached: true }), {
+              headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'public, max-age=60'
+              }
+            });
+          }
+        } catch (dbErr) {
+          console.error("Gagal membaca cache teater dari KV:", dbErr.message);
+        }
+      }
+
       try {
         const showData = await fetchJson(`https://jkt48.com/api/v1/theater-shows/${code}?lang=id`);
         if (typeof JKT48_DB !== 'undefined' && showData) {
           await JKT48_DB.put(`theater_${code}`, JSON.stringify(showData));
+          await JKT48_DB.put(`theater_epoch_${code}`, Date.now().toString());
         }
         return new Response(JSON.stringify({ ...showData, is_fallback: false }), {
           headers: {
@@ -149,10 +170,31 @@ async function handleRequest(request, event) {
       const defaultYear = dateJakarta.getFullYear();
       const month = cacheUrl.searchParams.get("month") || defaultMonth;
       const year = cacheUrl.searchParams.get("year") || defaultYear;
+
+      // Coba ambil dari KV cache jika masih di bawah 1 jam (3600000 ms)
+      if (typeof JKT48_DB !== 'undefined') {
+        try {
+          const cachedSchedules = await JKT48_DB.get(`schedules_${month}_${year}`, "json");
+          const cachedEpoch = parseInt(await JKT48_DB.get(`schedules_epoch_${month}_${year}`)) || 0;
+          if (cachedSchedules && (Date.now() - cachedEpoch < 3600000)) {
+            return new Response(JSON.stringify({ ...cachedSchedules, is_fallback: false, is_cached: true }), {
+              headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'public, max-age=300'
+              }
+            });
+          }
+        } catch (dbErr) {
+          console.error("Gagal membaca cache schedule dari KV:", dbErr.message);
+        }
+      }
+
       try {
         const scheduleData = await fetchJson(`https://jkt48.com/api/v1/schedules?month=${month}&year=${year}&lang=id`);
         if (typeof JKT48_DB !== 'undefined' && scheduleData) {
           await JKT48_DB.put(`schedules_${month}_${year}`, JSON.stringify(scheduleData));
+          await JKT48_DB.put(`schedules_epoch_${month}_${year}`, Date.now().toString());
         }
         return new Response(JSON.stringify({ ...scheduleData, is_fallback: false }), {
           headers: {
@@ -196,10 +238,30 @@ async function handleRequest(request, event) {
 
     // 1c. Rute proxy daftar member: /api/members
     if (cacheUrl.pathname === '/api/members') {
+      // Coba ambil dari KV cache jika masih di bawah 2 jam (7200000 ms)
+      if (typeof JKT48_DB !== 'undefined') {
+        try {
+          const cachedMembers = await JKT48_DB.get('members', "json");
+          const cachedEpoch = parseInt(await JKT48_DB.get('members_epoch')) || 0;
+          if (cachedMembers && (Date.now() - cachedEpoch < 7200000)) {
+            return new Response(JSON.stringify({ ...cachedMembers, is_fallback: false, is_cached: true }), {
+              headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'public, max-age=3600'
+              }
+            });
+          }
+        } catch (dbErr) {
+          console.error("Gagal membaca cache members dari KV:", dbErr.message);
+        }
+      }
+
       try {
         const membersData = await fetchJson('https://jkt48.com/api/v1/members?lang=id');
         if (typeof JKT48_DB !== 'undefined' && membersData) {
           await JKT48_DB.put('members', JSON.stringify(membersData));
+          await JKT48_DB.put('members_epoch', Date.now().toString());
         }
         return new Response(JSON.stringify({ ...membersData, is_fallback: false }), {
           headers: {
@@ -286,6 +348,46 @@ async function handleRequest(request, event) {
 
     // 2. Ambil daftar eksklusif aktif dari API JKT48 dan detail kuota secara paralel
     let finalData;
+
+    // Cek cooldown cache KV terlebih dahulu (60 detik = 60000 ms)
+    let cachedOutput = [];
+    let cachedHistory = [];
+    let cachedTime = "";
+    let lastUpdatedEpoch = 0;
+
+    if (typeof JKT48_DB !== 'undefined') {
+      try {
+        lastUpdatedEpoch = parseInt(await JKT48_DB.get("last_updated_time_epoch")) || 0;
+        cachedOutput = await JKT48_DB.get("last_snapshot", "json") || [];
+        cachedHistory = await JKT48_DB.get("history", "json") || [];
+        cachedTime = await JKT48_DB.get("last_updated_time") || "";
+      } catch (dbErr) {
+        console.error("Gagal membaca KV awal:", dbErr.message);
+      }
+    }
+
+    const cooldownPeriod = 60000; // 60 detik cache cooldown
+    const nowEpoch = Date.now();
+
+    if (nowEpoch - lastUpdatedEpoch < cooldownPeriod && cachedOutput.length > 0) {
+      // Sajikan dari cache KV secara transparan (sebagai data sinkron hasil cache)
+      finalData = {
+        last_updated: cachedTime,
+        data: cachedOutput,
+        history: cachedHistory,
+        is_fallback: false,
+        is_cached: true
+      };
+      return new Response(JSON.stringify(finalData), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=15'
+        }
+      });
+    }
+
+    // Cooldown berakhir atau tidak ada cache, lakukan fetch live
     try {
       const listRes = await fetchJson("https://jkt48.com/api/v1/exclusives?lang=id");
       const exclusives = listRes.data || [];
@@ -431,8 +533,9 @@ async function handleRequest(request, event) {
       if (typeof JKT48_DB !== 'undefined' && output.length > 0) {
         try {
           await JKT48_DB.put("last_updated_time", waktuWIB);
+          await JKT48_DB.put("last_updated_time_epoch", Date.now().toString());
         } catch (dbErr) {
-          console.error("Gagal menyimpan last_updated_time ke KV:", dbErr.message);
+          console.error("Gagal menyimpan metadata update ke KV:", dbErr.message);
         }
       }
 
