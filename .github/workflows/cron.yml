@@ -15,73 +15,26 @@ jobs:
 
       - name: Fetch API JKT48 Fix Endpoints
         run: |
-          # 1. Kategori PHOTOCARD
-          PC_SBY=$(curl -s "https://jkt48.com/api/v1/exclusives/EX9A4A/bonus?lang=id")
-          PC_YOGYA=$(curl -s "https://jkt48.com/api/v1/exclusives/EXCB75/bonus?lang=id")
-          
-          # 2. Kategori 2-SHOT
-          SHOT_SBY=$(curl -s "https://jkt48.com/api/v1/exclusives/EX3773/bonus?lang=id")
-          SHOT_YOGYA=$(curl -s "https://jkt48.com/api/v1/exclusives/EXCD2C/bonus?lang=id")
-          
           node -e "
-          try {
-            let output = [];
-
-            // Fungsi pembantu untuk parsing data secara terstruktur
-            function cetakData(jsonData, jenisBenefit, namaEvent) {
-              if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
-                jsonData.data.forEach(sesi => {
-                  const labelSesi = sesi.label || 'Sesi';
-                  let displaySesi = labelSesi;
-                  
-                  if (sesi.date) {
-                    const dateObj = new Date(sesi.date);
-                    const dateJakarta = new Date(dateObj.toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
-                    if (!isNaN(dateJakarta.getTime())) {
-                      const day = String(dateJakarta.getDate()).padStart(2, '0');
-                      const month = String(dateJakarta.getMonth() + 1).padStart(2, '0');
-                      const dateStr = `${day}/${month}`;
-                      if (!labelSesi.includes('·') && !labelSesi.includes('/')) {
-                        displaySesi = `${labelSesi} · ${dateStr}`;
-                      }
-                    }
-                  }
-                  
-                  if (sesi.session_members) {
-                    sesi.session_members.forEach(m => {
-                      output.push({
-                        sesi: displaySesi,
-                        event: namaEvent,
-                        jenis: jenisBenefit,
-                        jalur: m.label || '-',
-                        nama: m.member_name,
-                        terjual: m.tickets_sold,
-                        sisa: m.quota
-                      });
-                    });
-                  }
-                });
-              }
+          async function run() {
+            try {
+              console.log('Fetching live data from Cloudflare Worker proxy...');
+              const res = await fetch('https://jkt48-monitor-api.jefryoconner49.workers.dev');
+              if (!res.ok) throw new Error('API Worker returned status ' + res.status);
+              const data = await res.json();
+              
+              // Validate the format
+              if (!data || !data.data) throw new Error('Format data tidak valid');
+              
+              require('fs').writeFileSync('data.json', JSON.stringify(data, null, 2));
+              console.log('File data.json sukses diperbarui dari Worker API.');
+            } catch(e) {
+              console.error('Gagal memproses JSON:', e.message);
+              // Exit gracefully so the workflow stays green on rate limit/network errors
+              process.exit(0);
             }
-
-            // Eksekusi parsing sesuai pembagian link dari user
-            cetakData($PC_SBY, 'Photocard', 'LOVE & DREAM (SBY)');
-            cetakData($PC_YOGYA, 'Photocard', 'PASSION (YOGYA)');
-            cetakData($SHOT_SBY, '2-Shot', 'LOVE & DREAM (SBY)');
-            cetakData($SHOT_YOGYA, '2-Shot', 'PASSION (YOGYA)');
-            
-            // Urutkan kuota tiket paling menipis ke paling atas
-            output.sort((a, b) => a.sisa - b.sisa);
-            
-            const waktuWIB = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB';
-            const finalJson = { last_updated: waktuWIB, data: output };
-            
-            require('fs').writeFileSync('data.json', JSON.stringify(finalJson, null, 2));
-            console.log('File data.json sukses diperbarui dengan data link ter-fix.');
-          } catch(e) {
-            console.error('Gagal memproses JSON:', e.message);
-            process.exit(1);
           }
+          run();
           "
 
       - name: Commit and Push Changes
