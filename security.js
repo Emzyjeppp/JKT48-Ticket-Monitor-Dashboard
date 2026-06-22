@@ -6,7 +6,9 @@ if (!window.location.hostname.includes('localhost') && !window.location.protocol
     
     if (!expireTime || currentTime > parseInt(expireTime)) {
         const jawaban = prompt("Pertanyaan Keamanan: Siapa oshi emzyjeppp?");
-        if (!jawaban || jawaban.trim().toLowerCase() !== "lana") {
+        const jawabanClean = (jawaban || "").trim().toLowerCase();
+        const jawabanValid = ["aurhel alana tirta", "aurhel alana", "alana", "aurhel", "lana"];
+        if (!jawaban || !jawabanValid.includes(jawabanClean)) {
             alert("Jawaban salah atau dibatalkan! Akses ditolak. 😉");
             window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=8EuZqnNVZrtZ1Q_h";
             throw new Error("Akses ditolak: Jawaban salah.");
