@@ -169,9 +169,15 @@ async function bacaDataLokal() {
         // Perbarui log riwayat transaksi
         renderHistory(dataJson.history || []);
         
-        document.getElementById('lastUpdate').innerText = `Terakhir Sync JKT48: ${dataJson.last_updated || '-'}`;
-        statusDiv.innerText = "🟢 Data Sinkron";
-        statusDiv.className = "text-xs font-bold text-emerald-400";
+        if (dataJson.is_fallback) {
+            document.getElementById('lastUpdate').innerText = `Terakhir Sync JKT48: ${dataJson.last_updated || '-'} (Cache)`;
+            statusDiv.innerText = "⚠️ Data Cache (Offline)";
+            statusDiv.className = "text-xs font-bold text-amber-400";
+        } else {
+            document.getElementById('lastUpdate').innerText = `Terakhir Sync JKT48: ${dataJson.last_updated || '-'}`;
+            statusDiv.innerText = "🟢 Data Sinkron";
+            statusDiv.className = "text-xs font-bold text-emerald-400";
+        }
         
         filterData();
     } catch (error) {
@@ -477,8 +483,13 @@ async function muatJadwalTheater() {
         }
 
         renderTheaterShowCards();
-        statusLabel.innerText = "🟢 Jadwal Sinkron";
-        statusLabel.className = "text-xs font-bold text-emerald-400";
+        if (resJson.is_fallback) {
+            statusLabel.innerText = "⚠️ Jadwal Cache (Offline)";
+            statusLabel.className = "text-xs font-bold text-amber-400";
+        } else {
+            statusLabel.innerText = "🟢 Jadwal Sinkron";
+            statusLabel.className = "text-xs font-bold text-emerald-400";
+        }
 
         // Auto-select show: find first upcoming show or today's show
         const now = new Date();
@@ -755,8 +766,13 @@ async function muatKuotaTheater(code) {
         });
         tableBody.innerHTML = rows.join('');
 
-        statusLabel.innerText = "🟢 Data Sinkron";
-        statusLabel.className = "text-xs font-bold text-emerald-400";
+        if (resJson.is_fallback) {
+            statusLabel.innerText = "⚠️ Data Cache (Offline)";
+            statusLabel.className = "text-xs font-bold text-amber-400";
+        } else {
+            statusLabel.innerText = "🟢 Data Sinkron";
+            statusLabel.className = "text-xs font-bold text-emerald-400";
+        }
         dashboardSection.classList.remove('hidden');
 
     } catch (error) {

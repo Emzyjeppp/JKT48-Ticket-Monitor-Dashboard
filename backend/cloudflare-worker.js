@@ -92,7 +92,10 @@ async function handleRequest(request, event) {
       }
       try {
         const showData = await fetchJson(`https://jkt48.com/api/v1/theater-shows/${code}?lang=id`);
-        return new Response(JSON.stringify(showData), {
+        if (typeof JKT48_DB !== 'undefined' && showData) {
+          await JKT48_DB.put(`theater_${code}`, JSON.stringify(showData));
+        }
+        return new Response(JSON.stringify({ ...showData, is_fallback: false }), {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
@@ -100,9 +103,41 @@ async function handleRequest(request, event) {
           }
         });
       } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        if (typeof JKT48_DB !== 'undefined') {
+          try {
+            const cachedShow = await JKT48_DB.get(`theater_${code}`, "json");
+            if (cachedShow) {
+              return new Response(JSON.stringify({ ...cachedShow, is_fallback: true }), {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*',
+                  'Cache-Control': 'public, max-age=10'
+                }
+              });
+            }
+          } catch (dbErr) {
+            console.error("Gagal mengambil cached show dari KV:", dbErr.message);
+          }
+        }
+        // Fallback objek kosong agar frontend tidak crash saat cache kosong
+        return new Response(JSON.stringify({
+          status: true,
+          data: {
+            title: "Teater Show (Offline - Cache Kosong)",
+            date: new Date().toISOString(),
+            start_time: "19:00",
+            sales_period: [],
+            jkt48_member: [],
+            birthday_member_name: []
+          },
+          is_fallback: true,
+          message: err.message
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=5'
+          }
         });
       }
     }
@@ -116,7 +151,10 @@ async function handleRequest(request, event) {
       const year = cacheUrl.searchParams.get("year") || defaultYear;
       try {
         const scheduleData = await fetchJson(`https://jkt48.com/api/v1/schedules?month=${month}&year=${year}&lang=id`);
-        return new Response(JSON.stringify(scheduleData), {
+        if (typeof JKT48_DB !== 'undefined' && scheduleData) {
+          await JKT48_DB.put(`schedules_${month}_${year}`, JSON.stringify(scheduleData));
+        }
+        return new Response(JSON.stringify({ ...scheduleData, is_fallback: false }), {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
@@ -124,9 +162,34 @@ async function handleRequest(request, event) {
           }
         });
       } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        if (typeof JKT48_DB !== 'undefined') {
+          try {
+            const cachedSchedules = await JKT48_DB.get(`schedules_${month}_${year}`, "json");
+            if (cachedSchedules) {
+              return new Response(JSON.stringify({ ...cachedSchedules, is_fallback: true }), {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*',
+                  'Cache-Control': 'public, max-age=10'
+                }
+              });
+            }
+          } catch (dbErr) {
+            console.error("Gagal mengambil cached schedules dari KV:", dbErr.message);
+          }
+        }
+        // Fallback array kosong agar frontend tidak crash saat cache kosong
+        return new Response(JSON.stringify({
+          status: true,
+          data: [],
+          is_fallback: true,
+          message: err.message
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=5'
+          }
         });
       }
     }
@@ -135,7 +198,10 @@ async function handleRequest(request, event) {
     if (cacheUrl.pathname === '/api/members') {
       try {
         const membersData = await fetchJson('https://jkt48.com/api/v1/members?lang=id');
-        return new Response(JSON.stringify(membersData), {
+        if (typeof JKT48_DB !== 'undefined' && membersData) {
+          await JKT48_DB.put('members', JSON.stringify(membersData));
+        }
+        return new Response(JSON.stringify({ ...membersData, is_fallback: false }), {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
@@ -143,9 +209,34 @@ async function handleRequest(request, event) {
           }
         });
       } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        if (typeof JKT48_DB !== 'undefined') {
+          try {
+            const cachedMembers = await JKT48_DB.get('members', "json");
+            if (cachedMembers) {
+              return new Response(JSON.stringify({ ...cachedMembers, is_fallback: true }), {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*',
+                  'Cache-Control': 'public, max-age=60'
+                }
+              });
+            }
+          } catch (dbErr) {
+            console.error("Gagal mengambil cached members dari KV:", dbErr.message);
+          }
+        }
+        // Fallback array kosong agar frontend tidak crash saat cache kosong
+        return new Response(JSON.stringify({
+          status: true,
+          data: [],
+          is_fallback: true,
+          message: err.message
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=5'
+          }
         });
       }
     }
@@ -193,171 +284,209 @@ async function handleRequest(request, event) {
 
 
 
-    // 2. Ambil daftar eksklusif aktif dari API JKT48
-    const listRes = await fetchJson("https://jkt48.com/api/v1/exclusives?lang=id");
-    const exclusives = listRes.data || [];
+    // 2. Ambil daftar eksklusif aktif dari API JKT48 dan detail kuota secara paralel
+    let finalData;
+    try {
+      const listRes = await fetchJson("https://jkt48.com/api/v1/exclusives?lang=id");
+      const exclusives = listRes.data || [];
 
-    // Filter hanya kategori PHOTOCARD, TWO_SHOT, dan DIGITAL_PHOTOBOOK yang dirilis kurang dari 30 hari lalu
-    const activeExclusives = exclusives.filter(item => {
-      if (item.category !== "PHOTOCARD" && item.category !== "TWO_SHOT" && item.category !== "DIGITAL_PHOTOBOOK") return false;
-      const releaseDate = new Date(item.valid_date_from);
-      const ageInDays = (new Date() - releaseDate) / (1000 * 60 * 60 * 24);
-      return ageInDays < 30; // Hanya ambil yang berusia kurang dari 30 hari
-    });
+      // Filter hanya kategori PHOTOCARD, TWO_SHOT, dan DIGITAL_PHOTOBOOK yang dirilis kurang dari 30 hari lalu
+      const activeExclusives = exclusives.filter(item => {
+        if (item.category !== "PHOTOCARD" && item.category !== "TWO_SHOT" && item.category !== "DIGITAL_PHOTOBOOK") return false;
+        const releaseDate = new Date(item.valid_date_from);
+        const ageInDays = (new Date() - releaseDate) / (1000 * 60 * 60 * 24);
+        return ageInDays < 30; // Hanya ambil yang berusia kurang dari 30 hari
+      });
 
-    // 2. Ambil data detail (bonus/tiket) secara paralel untuk setiap eksklusif yang aktif
-    const detailPromises = activeExclusives.map(async (item) => {
-      try {
-        const detailData = await fetchJson(`https://jkt48.com/api/v1/exclusives/${item.code}/bonus?lang=id`);
-        return {
-          code: item.code,
-          category: item.category,
-          title: item.title,
-          data: detailData
-        };
-      } catch (err) {
-        console.error(`Gagal fetch detail untuk ${item.code}:`, err.message);
-        return null;
-      }
-    });
+      // Ambil data detail (bonus/tiket) secara paralel untuk setiap eksklusif yang aktif
+      const detailPromises = activeExclusives.map(async (item) => {
+        try {
+          const detailData = await fetchJson(`https://jkt48.com/api/v1/exclusives/${item.code}/bonus?lang=id`);
+          return {
+            code: item.code,
+            category: item.category,
+            title: item.title,
+            data: detailData
+          };
+        } catch (err) {
+          console.error(`Gagal fetch detail untuk ${item.code}:`, err.message);
+          return null;
+        }
+      });
 
-    const details = (await Promise.all(detailPromises)).filter(d => d !== null);
+      const details = (await Promise.all(detailPromises)).filter(d => d !== null);
 
-    let output = []
+      let output = [];
 
-    // 3. Parsing data terstruktur dari setiap eksklusif
-    details.forEach(item => {
-      const jenisBenefit = item.category === 'PHOTOCARD' 
-        ? 'Photocard' 
-        : (item.category === 'TWO_SHOT' ? '2-Shot' : 'Video Call');
-      const namaEvent = parseEventName(item.title, item.category);
-      const jsonData = item.data;
+      // 3. Parsing data terstruktur dari setiap eksklusif
+      details.forEach(item => {
+        const jenisBenefit = item.category === 'PHOTOCARD' 
+          ? 'Photocard' 
+          : (item.category === 'TWO_SHOT' ? '2-Shot' : 'Video Call');
+        const namaEvent = parseEventName(item.title, item.category);
+        const jsonData = item.data;
 
-      if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
-        jsonData.data.forEach(sesi => {
-          const labelSesi = sesi.label || 'Sesi';
-          let displaySesi = labelSesi;
-          
-          if (sesi.date) {
-            const dateObj = new Date(sesi.date);
-            const dateJakarta = new Date(dateObj.toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
-            if (!isNaN(dateJakarta.getTime())) {
-              const day = String(dateJakarta.getDate()).padStart(2, '0');
-              const month = String(dateJakarta.getMonth() + 1).padStart(2, '0');
-              const dateStr = `${day}/${month}`;
-              if (!labelSesi.includes('·') && !labelSesi.includes('/')) {
-                displaySesi = `${labelSesi} · ${dateStr}`;
+        if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
+          jsonData.data.forEach(sesi => {
+            const labelSesi = sesi.label || 'Sesi';
+            let displaySesi = labelSesi;
+            
+            if (sesi.date) {
+              const dateObj = new Date(sesi.date);
+              const dateJakarta = new Date(dateObj.toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
+              if (!isNaN(dateJakarta.getTime())) {
+                const day = String(dateJakarta.getDate()).padStart(2, '0');
+                const month = String(dateJakarta.getMonth() + 1).padStart(2, '0');
+                const dateStr = `${day}/${month}`;
+                if (!labelSesi.includes('·') && !labelSesi.includes('/')) {
+                  displaySesi = `${labelSesi} · ${dateStr}`;
+                }
               }
             }
-          }
-          
-          if (sesi.session_members) {
-            sesi.session_members.forEach(m => {
-              output.push({
-                sesi: displaySesi,
-                event: namaEvent,
-                jenis: jenisBenefit,
-                jalur: m.label || '-',
-                nama: m.member_name,
-                terjual: m.tickets_sold,
-                sisa: m.quota
-              })
-            })
-          }
-        })
-      }
-    });
-
-    // 4. Deteksi Transaksi & Urutan Sold Out Tercepat (jika database JKT48_DB terhubung)
-    let history = [];
-    if (typeof JKT48_DB !== 'undefined') {
-      try {
-        let lastSnapshot = await JKT48_DB.get("last_snapshot", "json");
-        let transactions = [];
-
-        if (lastSnapshot) {
-          const lastMap = new Map();
-          lastSnapshot.forEach(item => {
-            const key = `${item.event}-${item.jenis}-${item.sesi}-${item.nama}-${item.jalur}`;
-            lastMap.set(key, item);
-          });
-
-          output.forEach(item => {
-            const key = `${item.event}-${item.jenis}-${item.sesi}-${item.nama}-${item.jalur}`;
-            const prev = lastMap.get(key);
-
-            if (prev) {
-              const isSoldOutNow = (item.sisa === 0 && prev.sisa > 0);
-              // Hanya catat ke log jika status berubah menjadi SOLD OUT sekarang
-              if (isSoldOutNow) {
-                transactions.push({
-                  waktu: new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' }),
-                  event: item.event,
-                  jenis: item.jenis,
-                  sesi: item.sesi,
-                  nama: item.nama,
-                  jalur: item.jalur,
-                  sisa: item.sisa,
-                  soldOut: true
+            
+            if (sesi.session_members) {
+              sesi.session_members.forEach(m => {
+                output.push({
+                  sesi: displaySesi,
+                  event: namaEvent,
+                  jenis: jenisBenefit,
+                  jalur: m.label || '-',
+                  nama: m.member_name,
+                  terjual: m.tickets_sold,
+                  sisa: m.quota
                 });
-              }
+              });
             }
           });
         }
+      });
 
-        // Lakukan pembaruan database jika ada data baru
-        if (output.length > 0) {
-          if (!lastSnapshot || transactions.length > 0) {
-            await JKT48_DB.put("last_snapshot", JSON.stringify(output));
+      // 4. Deteksi Transaksi & Urutan Sold Out Tercepat (jika database JKT48_DB terhubung)
+      let history = [];
+      if (typeof JKT48_DB !== 'undefined') {
+        try {
+          let lastSnapshot = await JKT48_DB.get("last_snapshot", "json");
+          let transactions = [];
+
+          if (lastSnapshot) {
+            const lastMap = new Map();
+            lastSnapshot.forEach(item => {
+              const key = `${item.event}-${item.jenis}-${item.sesi}-${item.nama}-${item.jalur}`;
+              lastMap.set(key, item);
+            });
+
+            output.forEach(item => {
+              const key = `${item.event}-${item.jenis}-${item.sesi}-${item.nama}-${item.jalur}`;
+              const prev = lastMap.get(key);
+
+              if (prev) {
+                const isSoldOutNow = (item.sisa === 0 && prev.sisa > 0);
+                if (isSoldOutNow) {
+                  transactions.push({
+                    waktu: new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' }),
+                    event: item.event,
+                    jenis: item.jenis,
+                    sesi: item.sesi,
+                    nama: item.nama,
+                    jalur: item.jalur,
+                    sisa: item.sisa,
+                    soldOut: true
+                  });
+                }
+              }
+            });
           }
+
+          if (output.length > 0) {
+            if (!lastSnapshot || transactions.length > 0) {
+              await JKT48_DB.put("last_snapshot", JSON.stringify(output));
+            }
+          }
+
+          if (transactions.length > 0) {
+            let oldHistory = await JKT48_DB.get("history", "json") || [];
+            history = [...transactions, ...oldHistory].slice(0, 50);
+            await JKT48_DB.put("history", JSON.stringify(history));
+          } else {
+            history = await JKT48_DB.get("history", "json") || [];
+          }
+        } catch (dbErr) {
+          console.error("Gagal memproses database KV:", dbErr.message);
         }
+      }
 
-        if (transactions.length > 0) {
-          let oldHistory = await JKT48_DB.get("history", "json") || [];
-          history = [...transactions, ...oldHistory].slice(0, 50);
-          await JKT48_DB.put("history", JSON.stringify(history));
-        } else {
-          history = await JKT48_DB.get("history", "json") || [];
+      output.sort((a, b) => {
+        if (a.sisa === 0 && b.sisa !== 0) return 1;
+        if (a.sisa !== 0 && b.sisa === 0) return -1;
+        return a.sisa - b.sisa;
+      });
+
+      const formatter = new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        dateStyle: 'short',
+        timeStyle: 'medium'
+      });
+      const waktuWIB = formatter.format(new Date()) + ' WIB';
+
+      if (typeof JKT48_DB !== 'undefined' && output.length > 0) {
+        try {
+          await JKT48_DB.put("last_updated_time", waktuWIB);
+        } catch (dbErr) {
+          console.error("Gagal menyimpan last_updated_time ke KV:", dbErr.message);
         }
-      } catch (dbErr) {
-        console.error("Gagal memproses database KV:", dbErr.message);
       }
-    }
 
-    // Urutkan kuota tiket: sisa > 0 (menipis ke atas) di paling atas, dan sisa = 0 (SOLD OUT) di paling bawah
-    output.sort((a, b) => {
-      if (a.sisa === 0 && b.sisa !== 0) return 1;
-      if (a.sisa !== 0 && b.sisa === 0) return -1;
-      return a.sisa - b.sisa;
-    })
+      finalData = {
+        last_updated: waktuWIB,
+        data: output,
+        history: history,
+        is_fallback: false
+      };
 
-    // Format Waktu WIB
-    const formatter = new Intl.DateTimeFormat('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      dateStyle: 'short',
-      timeStyle: 'medium'
-    })
-    const waktuWIB = formatter.format(new Date()) + ' WIB'
+      response = new Response(JSON.stringify(finalData), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=60'
+        }
+      });
 
-    const finalData = {
-      last_updated: waktuWIB,
-      data: output,
-      history: history
-    }
+      event.waitUntil(cache.put(cacheKey, response.clone()));
+      return response;
 
-    // Buat response dengan CORS enabled & Cache-Control (60 detik)
-    response = new Response(JSON.stringify(finalData), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=60'
+    } catch (fetchError) {
+      console.error("Gagal mengambil data kuota live:", fetchError.message);
+      
+      let cachedOutput = [];
+      let cachedHistory = [];
+      let cachedTime = "Tidak tersedia";
+
+      if (typeof JKT48_DB !== 'undefined') {
+        try {
+          cachedOutput = await JKT48_DB.get("last_snapshot", "json") || [];
+          cachedHistory = await JKT48_DB.get("history", "json") || [];
+          cachedTime = await JKT48_DB.get("last_updated_time") || "Menggunakan data cache terakhir (Offline)";
+        } catch (dbErr) {
+          console.error("Gagal mengambil fallback dari KV:", dbErr.message);
+        }
       }
-    })
 
-    // Simpan ke cache Cloudflare (jika bukan error)
-    event.waitUntil(cache.put(cacheKey, response.clone()))
+      finalData = {
+        last_updated: cachedTime,
+        data: cachedOutput,
+        history: cachedHistory,
+        is_fallback: true,
+        fallback_reason: fetchError.message
+      };
 
-    return response
+      return new Response(JSON.stringify(finalData), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=10'
+        }
+      });
+    }
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
@@ -365,6 +494,6 @@ async function handleRequest(request, event) {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       }
-    })
+    });
   }
 }
