@@ -892,7 +892,7 @@ function prosesDump() {
         const parsed = JSON.parse(rawText);
         const showData = parsed.data || parsed;
         
-        if (showData && (showData.theater_show_id || showData.sales_period || showData.set_list)) {
+        if (showData && (showData.theater_show_id || showData.set_list || showData.seating_layout)) {
             jsonDataType = 'THEATER';
             prosesJsonTheater(showData);
         } else {
@@ -949,10 +949,26 @@ function prosesHtmlTheater(html) {
 }
 
 function prosesJsonExclusives(dataSesi) {
-    const sessionsArray = Array.isArray(dataSesi) ? dataSesi : [dataSesi];
     semuaJsonMasterData = []; // Reset
 
+    // Ekstrak array sesi dari berbagai struktur JSON
+    let sessionsArray = [];
+    if (dataSesi) {
+        if (Array.isArray(dataSesi)) {
+            sessionsArray = dataSesi;
+        } else if (dataSesi.session && Array.isArray(dataSesi.session)) {
+            sessionsArray = dataSesi.session;
+        } else if (dataSesi.data && Array.isArray(dataSesi.data)) {
+            sessionsArray = dataSesi.data;
+        } else if (dataSesi.data && dataSesi.data.session && Array.isArray(dataSesi.data.session)) {
+            sessionsArray = dataSesi.data.session;
+        } else {
+            sessionsArray = [dataSesi];
+        }
+    }
+
     sessionsArray.forEach(sesi => {
+        if (!sesi) return;
         const labelSesi = sesi.label || 'Sesi';
         let displaySesi = labelSesi;
 
@@ -969,14 +985,21 @@ function prosesJsonExclusives(dataSesi) {
             }
         }
 
-        if(sesi.session_members && Array.isArray(sesi.session_members)) {
-            sesi.session_members.forEach(m => {
+        // Mendukung properti session_members maupun session_detail
+        const membersList = sesi.session_members || sesi.session_detail || [];
+        if (Array.isArray(membersList)) {
+            membersList.forEach(m => {
+                if (!m) return;
+                const memberName = m.member_name || m.jkt48_member_name || 'Member';
+                const ticketsSold = typeof m.tickets_sold !== 'undefined' ? m.tickets_sold : 0;
+                const quota = typeof m.quota !== 'undefined' ? m.quota : (typeof m.available_quota !== 'undefined' ? m.available_quota : 0);
+
                 semuaJsonMasterData.push({
                     sesi: displaySesi,
                     jalur: m.label || '-',
-                    nama: m.member_name,
-                    terjual: m.tickets_sold,
-                    sisa: m.quota
+                    nama: memberName,
+                    terjual: ticketsSold,
+                    sisa: quota
                 });
             });
         }
