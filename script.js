@@ -5,6 +5,8 @@ let filterEventAktif = 'SEMUA';
 let urutanAktif = 'TERSEDIA';
 let oshiBookmarks = JSON.parse(localStorage.getItem('oshiBookmarks')) || [];
 let fetchTimeout = null;
+let kodeManualAktif = null;
+
 
 // Tipe data & data hasil parsing untuk Halaman 3 (JSON Reader)
 let jsonDataType = 'EXCLUSIVES';
@@ -155,8 +157,20 @@ async function bacaDataLokal() {
     fetchTimeout = setTimeout(bacaDataLokal, 15000);
 
     const statusDiv = document.getElementById('statusFetch');
+    const banner = document.getElementById('exclusiveManualBanner');
+    const bannerCode = document.getElementById('exclusiveManualActiveCode');
+
     try {
-        const fetchUrl = API_URL + '?_cb=' + new Date().getTime();
+        let fetchUrl;
+        if (kodeManualAktif) {
+            fetchUrl = `${API_URL}/api/exclusive?code=${kodeManualAktif}&_cb=${new Date().getTime()}`;
+            if (banner) banner.classList.remove('hidden');
+            if (bannerCode) bannerCode.innerText = kodeManualAktif;
+        } else {
+            fetchUrl = API_URL + '?_cb=' + new Date().getTime();
+            if (banner) banner.classList.add('hidden');
+        }
+
         const response = await fetch(fetchUrl);
         if (!response.ok) throw new Error("Gagal mengambil data kuota JKT48.");
         
@@ -402,6 +416,39 @@ function renderHistory(historyList) {
             </div>
         `;
     }).join('');
+}
+
+
+// ==========================================
+// EXCLUSIVES MANUAL CODE CHECKER FUNCTIONS
+// ==========================================
+function toggleExclusiveManualInput() {
+    const inputSec = document.getElementById('exclusiveManualInputSection');
+    if (inputSec) inputSec.classList.toggle('hidden');
+}
+
+function muatKuotaExclusiveDariInput() {
+    const codeInput = document.getElementById('exclusiveCodeInput');
+    if (!codeInput) return;
+    const code = codeInput.value.trim().toUpperCase();
+    if (!code) {
+        alert("Harap masukkan Exclusive Code terlebih dahulu! (Contoh: EX273E)");
+        return;
+    }
+    
+    kodeManualAktif = code;
+    bacaDataLokal();
+    
+    // Hide panel input setelah memproses
+    const inputSec = document.getElementById('exclusiveManualInputSection');
+    if (inputSec) inputSec.classList.add('hidden');
+}
+
+function kembalikeSemuaEventExclusives() {
+    kodeManualAktif = null;
+    const codeInput = document.getElementById('exclusiveCodeInput');
+    if (codeInput) codeInput.value = '';
+    bacaDataLokal();
 }
 
 
@@ -884,7 +931,12 @@ function prosesDump() {
 
     // Deteksi jika input adalah HTML
     if (rawText.startsWith('<') || rawText.includes('<html') || rawText.includes('<!DOCTYPE')) {
-        prosesHtmlTheater(rawText);
+        const lowerText = rawText.toLowerCase();
+        if (lowerText.includes('purchase/exclusive') || lowerText.includes('/exclusive') || lowerText.includes('meet & greet') || lowerText.includes('2-shot') || lowerText.includes('video call') || lowerText.includes('photobook')) {
+            prosesHtmlExclusives(rawText);
+        } else {
+            prosesHtmlTheater(rawText);
+        }
         return;
     }
 
@@ -908,6 +960,167 @@ function prosesDump() {
     } catch (error) {
         alert('Gagal membaca data. Pastikan seluruh teks ter-copy dengan sempurna ya!\nError: ' + error.message);
     }
+}
+
+function prosesHtmlExclusives(html) {
+    semuaJsonMasterData = []; // Reset
+    
+    // 1. Coba cari JSON state di dalam tag script
+    const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+    let match;
+    while ((match = scriptRegex.exec(html)) !== null) {
+        const scriptContent = match[1];
+        if (scriptContent.includes('session_members') || scriptContent.includes('session_detail') || (scriptContent.includes('session') && scriptContent.includes('member_name'))) {
+            const jsonMatch = scriptContent.match(/\{[\s\S]*\}/) || scriptContent.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                try {
+                    let jsonText = jsonMatch[0];
+                    const equalsIdx = jsonText.indexOf('=');
+                    if (equalsIdx > -1 && equalsIdx < 20) {
+                        jsonText = jsonText.substring(equalsIdx + 1).trim();
+                    }
+                    if (jsonText.endsWith(';')) jsonText = jsonText.slice(0, -1);
+                    
+                    const parsedJson = JSON.parse(jsonText);
+                    if (parsedJson) {
+                        prosesJsonExclusives(parsedJson.data || parsedJson);
+                        return;
+                    }
+                } catch (e) {
+                    // Lanjutkan pencarian jika gagal
+                }
+            }
+        }
+    }
+
+    // 2. Fallback: Parse DOM menggunakan DOMParser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Cari nama event dari title atau tag h1/h2
+    const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i) || html.match(/<h2[^>]*>([^<]+)<\/h2>/i) || html.match(/<title>([^<]+)<\/title>/i);
+    let eventTitle = titleMatch ? titleMatch[1].replace("JKT48 Official Web Site | ", "").trim() : 'Event Exclusive';
+    eventTitle = eventTitle.replace(/\s+/g, ' ');
+
+    let activeSession = "Sesi Umum";
+    const elements = doc.querySelectorAll('h1, h2, h3, h4, h5, h6, tr, div.member-card, div.session-card');
+    
+    elements.forEach(el => {
+        const tagName = el.tagName.toLowerCase();
+        const text = el.textContent.trim();
+        
+        if (tagName.startsWith('h') && text.toLowerCase().includes('sesi')) {
+            activeSession = text;
+        }
+        
+        if (tagName === 'tr') {
+            const tds = el.querySelectorAll('td');
+            if (tds.length >= 2) {
+                const cellTexts = Array.from(tds).map(td => td.textContent.trim());
+                
+                let memberName = "";
+                let jalur = "-";
+                let sisa = 5;
+                let terjual = 0;
+                let isDataRow = false;
+
+                cellTexts.forEach((ct, idx) => {
+                    const ctLower = ct.toLowerCase();
+                    
+                    memberPhotosMap.forEach((val, key) => {
+                        if (ctLower === key || ctLower.startsWith(key) || ctLower.includes(" " + key) || (key.includes(ctLower) && ctLower.length > 3)) {
+                            memberName = key;
+                            isDataRow = true;
+                        }
+                    });
+
+                    if (ctLower.includes('jalur')) {
+                        jalur = ct;
+                    }
+
+                    if (ctLower.includes('sold out') || ctLower.includes('habis') || ctLower.includes('habis terjual') || ctLower.includes('penuh')) {
+                        sisa = 0;
+                        isDataRow = true;
+                    } else if (ctLower.includes('sisa') || ctLower.includes('tersedia')) {
+                        const numMatch = ct.match(/(\d+)/);
+                        if (numMatch) {
+                            sisa = parseInt(numMatch[1]);
+                        }
+                        isDataRow = true;
+                    }
+                });
+
+                if (isDataRow && memberName) {
+                    let displaySession = activeSession;
+                    cellTexts.forEach(ct => {
+                        if (ct.toLowerCase().includes('sesi') && ct.length < 30) {
+                            displaySession = ct;
+                        }
+                    });
+                    
+                    const rowHtml = el.innerHTML.toLowerCase();
+                    if (rowHtml.includes('sold out') || rowHtml.includes('habis')) {
+                        sisa = 0;
+                    }
+
+                    const formattedName = memberName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+                    semuaJsonMasterData.push({
+                        sesi: displaySession,
+                        jalur: jalur,
+                        nama: formattedName,
+                        terjual: terjual,
+                        sisa: sisa
+                    });
+                }
+            }
+        }
+    });
+
+    if (semuaJsonMasterData.length === 0) {
+        memberPhotosMap.forEach((val, key) => {
+            const nameEscaped = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const regex = new RegExp(nameEscaped + `[\\s\\S]{1,100}?(sold out|habis|sisa\\s*:\\s*\\d+|\\d+\\s*tiket|pesan|beli)`, 'gi');
+            let m;
+            while ((m = regex.exec(html)) !== null) {
+                const matchText = m[0].toLowerCase();
+                let sisa = 5;
+                if (matchText.includes('sold out') || matchText.includes('habis')) {
+                    sisa = 0;
+                } else {
+                    const numMatch = matchText.match(/(\d+)/);
+                    if (numMatch) sisa = parseInt(numMatch[1]);
+                }
+                const formattedName = key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                semuaJsonMasterData.push({
+                    sesi: "Sesi Umum",
+                    jalur: "-",
+                    nama: formattedName,
+                    terjual: 0,
+                    sisa: sisa
+                });
+            }
+        });
+    }
+
+    const uniqueMap = new Map();
+    semuaJsonMasterData.forEach(item => {
+        const uniqueKey = `${item.sesi}-${item.nama}-${item.jalur}`;
+        if (!uniqueMap.has(uniqueKey) || uniqueMap.get(uniqueKey).sisa > item.sisa) {
+            uniqueMap.set(uniqueKey, item);
+        }
+    });
+    semuaJsonMasterData = Array.from(uniqueMap.values());
+
+    semuaJsonMasterData.sort((a, b) => a.sisa - b.sisa);
+
+    jsonDataType = 'EXCLUSIVES';
+    updateJsonTableHeaders('EXCLUSIVES');
+    renderJsonTabel(semuaJsonMasterData);
+
+    document.getElementById('jsonDashboardSection').classList.remove('hidden');
+    document.getElementById('jsonSearchFilter').classList.remove('hidden');
+    document.getElementById('jsonLastUpdate').innerText = `Terakhir Update: Parsed dari HTML @ ${new Date().toLocaleTimeString('id-ID')} WIB`;
 }
 
 function prosesHtmlTheater(html) {

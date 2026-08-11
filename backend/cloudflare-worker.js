@@ -346,7 +346,175 @@ async function handleRequest(request, event) {
       }
     }
 
+    // 1e. Rute proxy detail exclusive khusus: /api/exclusive?code=EX273E
+    if (cacheUrl.pathname === '/api/exclusive') {
+      const code = cacheUrl.searchParams.get("code");
+      if (!code) {
+        return new Response(JSON.stringify({ error: "Parameter 'code' dibutuhkan." }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+      
+      const targetCode = code.toUpperCase().trim();
+      const nowEpoch = Date.now();
+      
+      // Coba ambil dari KV cache jika masih di bawah 2 menit (120000 ms)
+      if (typeof JKT48_DB !== 'undefined') {
+        try {
+          const cachedExclusive = await JKT48_DB.get(`exclusive_single_${targetCode}`, "json");
+          const cachedEpoch = parseInt(await JKT48_DB.get(`exclusive_single_epoch_${targetCode}`)) || 0;
+          if (cachedExclusive && (nowEpoch - cachedEpoch < 120000)) {
+            return new Response(JSON.stringify({ ...cachedExclusive, is_fallback: false, is_cached: true }), {
+              headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'public, max-age=15'
+              }
+            });
+          }
+        } catch (dbErr) {
+          console.error("Gagal membaca cache exclusive dari KV:", dbErr.message);
+        }
+      }
 
+      try {
+        let infoData = null;
+        let title = `Exclusive Event (${targetCode})`;
+        let category = "EXCLUSIVES";
+        
+        try {
+          const infoUrl1 = `https://jkt48.com/api/v1/exclusives/code/${targetCode}?lang=id`;
+          infoData = await fetchJson(infoUrl1);
+        } catch (err1) {
+          try {
+            const infoUrl2 = `https://jkt48.com/api/v1/exclusives/${targetCode}?lang=id`;
+            infoData = await fetchJson(infoUrl2);
+          } catch (err2) {
+            console.error("Gagal mengambil info eksklusif dari kedua URL:", err2.message);
+          }
+        }
+        
+        if (infoData && infoData.data) {
+          title = infoData.data.title || title;
+          category = infoData.data.category || category;
+        }
+
+        const detailData = await fetchJson(`https://jkt48.com/api/v1/exclusives/${targetCode}/bonus?lang=id`);
+        
+        let output = [];
+        const jenisBenefit = category === 'PHOTOCARD' 
+          ? 'Photocard' 
+          : (category === 'TWO_SHOT' ? '2-Shot' : (category === 'DIGITAL_PHOTOBOOK' ? 'Video Call' : category));
+        const namaEvent = parseEventName(title, category);
+        
+        if (detailData && detailData.data && Array.isArray(detailData.data)) {
+          detailData.data.forEach(sesi => {
+            const labelSesi = sesi.label || 'Sesi';
+            let displaySesi = labelSesi;
+            
+            if (sesi.date) {
+              const dateObj = new Date(sesi.date);
+              const dateJakarta = new Date(dateObj.toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
+              if (!isNaN(dateJakarta.getTime())) {
+                const day = String(dateJakarta.getDate()).padStart(2, '0');
+                const month = String(dateJakarta.getMonth() + 1).padStart(2, '0');
+                const dateStr = `${day}/${month}`;
+                if (!labelSesi.includes('·') && !labelSesi.includes('/')) {
+                  displaySesi = `${labelSesi} · ${dateStr}`;
+                }
+              }
+            }
+            
+            const membersList = sesi.session_members || sesi.session_detail || [];
+            if (Array.isArray(membersList)) {
+              membersList.forEach(m => {
+                const memberName = m.member_name || m.jkt48_member_name || 'Member';
+                const ticketsSold = typeof m.tickets_sold !== 'undefined' ? m.tickets_sold : 0;
+                const quota = typeof m.quota !== 'undefined' ? m.quota : (typeof m.available_quota !== 'undefined' ? m.available_quota : 0);
+                
+                output.push({
+                  sesi: displaySesi,
+                  event: namaEvent,
+                  jenis: jenisBenefit,
+                  jalur: m.label || '-',
+                  nama: memberName,
+                  terjual: ticketsSold,
+                  sisa: quota
+                });
+              });
+            }
+          });
+        }
+
+        output.sort((a, b) => {
+          if (a.sisa === 0 && b.sisa !== 0) return 1;
+          if (a.sisa !== 0 && b.sisa === 0) return -1;
+          return a.sisa - b.sisa;
+        });
+
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          dateStyle: 'short',
+          timeStyle: 'medium'
+        });
+        const waktuWIB = formatter.format(new Date()) + ' WIB';
+
+        const result = {
+          status: true,
+          last_updated: waktuWIB,
+          title: title,
+          category: category,
+          data: output,
+          history: []
+        };
+
+        if (typeof JKT48_DB !== 'undefined' && output.length > 0) {
+          await JKT48_DB.put(`exclusive_single_${targetCode}`, JSON.stringify(result));
+          await JKT48_DB.put(`exclusive_single_epoch_${targetCode}`, Date.now().toString());
+        }
+
+        return new Response(JSON.stringify({ ...result, is_fallback: false }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=60'
+          }
+        });
+
+      } catch (err) {
+        console.error(`Gagal memuat detail manual untuk ${targetCode}:`, err.message);
+        
+        if (typeof JKT48_DB !== 'undefined') {
+          try {
+            const cachedExclusive = await JKT48_DB.get(`exclusive_single_${targetCode}`, "json");
+            if (cachedExclusive) {
+              return new Response(JSON.stringify({ ...cachedExclusive, is_fallback: true }), {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*',
+                  'Cache-Control': 'public, max-age=10'
+                }
+              });
+            }
+          } catch (dbErr) {
+            console.error("Gagal mengambil fallback manual dari KV:", dbErr.message);
+          }
+        }
+        
+        return new Response(JSON.stringify({
+          status: false,
+          error: err.message,
+          message: "Gagal memuat detail event. Pastikan kode event valid dan terdaftar."
+        }), {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
 
     // 2. Ambil daftar eksklusif aktif dari API JKT48 dan detail kuota secara paralel
     let finalData;
