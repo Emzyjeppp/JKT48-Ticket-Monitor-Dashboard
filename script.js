@@ -932,14 +932,10 @@ function prosesDump() {
         return;
     }
 
-    // Deteksi jika input adalah HTML
-    if (rawText.startsWith('<') || rawText.includes('<html') || rawText.includes('<!DOCTYPE')) {
-        const lowerText = rawText.toLowerCase();
-        if (lowerText.includes('exclusive') || lowerText.includes('meet & greet') || lowerText.includes('2-shot') || lowerText.includes('video call') || lowerText.includes('photobook')) {
-            prosesHtmlExclusives(rawText);
-        } else {
-            prosesHtmlTheater(rawText);
-        }
+    // Deteksi awal jika input berisi tag HTML
+    const isHtml = rawText.startsWith('<') || rawText.includes('<html') || rawText.includes('</html') || rawText.includes('<!DOCTYPE') || (rawText.includes('<') && rawText.includes('>'));
+    if (isHtml) {
+        runHtmlParser(rawText);
         return;
     }
 
@@ -962,7 +958,21 @@ function prosesDump() {
         document.getElementById('jsonLastUpdate').innerText = `Terakhir Update: ${new Date().toLocaleTimeString('id-ID')} WIB`;
 
     } catch (error) {
-        alert('Gagal membaca data. Pastikan seluruh teks ter-copy dengan sempurna ya!\nError: ' + error.message);
+        // Fallback terakhir: jika JSON parse gagal tapi teks mengandung tag HTML, proses sebagai HTML
+        if (rawText.includes('<') && rawText.includes('>')) {
+            runHtmlParser(rawText);
+        } else {
+            alert('Gagal membaca data. Pastikan seluruh teks ter-copy dengan sempurna ya!\nError: ' + error.message);
+        }
+    }
+}
+
+function runHtmlParser(rawText) {
+    const lowerText = rawText.toLowerCase();
+    if (lowerText.includes('exclusive') || lowerText.includes('meet & greet') || lowerText.includes('2-shot') || lowerText.includes('video call') || lowerText.includes('photobook')) {
+        prosesHtmlExclusives(rawText);
+    } else {
+        prosesHtmlTheater(rawText);
     }
 }
 
