@@ -923,6 +923,9 @@ function tutupModalMember() {
 // HALAMAN 3: PEMBACA DUMP JSON (MANUAL PARSER)
 // ==========================================
 function prosesDump() {
+    const applyBtn = document.getElementById('btnApplyToDashboard');
+    if (applyBtn) applyBtn.classList.add('hidden');
+
     const rawText = document.getElementById('jsonInput').value.trim();
     if(!rawText) {
         alert('Teks kosong! Salin dulu dari Network Tab atau Page Source HTML.');
@@ -955,6 +958,7 @@ function prosesDump() {
         // Tampilkan elemen dashboard & live search
         document.getElementById('jsonDashboardSection').classList.remove('hidden');
         document.getElementById('jsonSearchFilter').classList.remove('hidden');
+        document.getElementById('btnApplyToDashboard').classList.remove('hidden');
         document.getElementById('jsonLastUpdate').innerText = `Terakhir Update: ${new Date().toLocaleTimeString('id-ID')} WIB`;
 
     } catch (error) {
@@ -1145,6 +1149,7 @@ function prosesHtmlExclusives(html) {
 
     document.getElementById('jsonDashboardSection').classList.remove('hidden');
     document.getElementById('jsonSearchFilter').classList.remove('hidden');
+    document.getElementById('btnApplyToDashboard').classList.remove('hidden');
     document.getElementById('jsonLastUpdate').innerText = `Terakhir Update: Parsed dari HTML @ ${new Date().toLocaleTimeString('id-ID')} WIB`;
 }
 
@@ -1183,6 +1188,7 @@ function prosesHtmlTheater(html) {
     // Tampilkan elemen dashboard & live search
     document.getElementById('jsonDashboardSection').classList.remove('hidden');
     document.getElementById('jsonSearchFilter').classList.remove('hidden');
+    document.getElementById('btnApplyToDashboard').classList.remove('hidden');
     document.getElementById('jsonLastUpdate').innerText = `Terakhir Update: Parsed dari HTML @ ${new Date().toLocaleTimeString('id-ID')} WIB`;
 }
 
@@ -1436,3 +1442,83 @@ window.onload = async function() {
         filterData();
     }
 };
+
+function terapkanKeDashboard() {
+    if (semuaJsonMasterData.length === 0) {
+        alert("Tidak ada data untuk diterapkan! Harap masukkan data terlebih dahulu.");
+        return;
+    }
+
+    if (jsonDataType === 'EXCLUSIVES') {
+        semuaMasterData = JSON.parse(JSON.stringify(semuaJsonMasterData));
+        
+        if (fetchTimeout) {
+            clearTimeout(fetchTimeout);
+            fetchTimeout = null;
+        }
+
+        const statusDiv = document.getElementById('statusFetch');
+        const lastUpdateDiv = document.getElementById('lastUpdate');
+        const banner = document.getElementById('exclusiveManualBanner');
+        const bannerCode = document.getElementById('exclusiveManualActiveCode');
+
+        if (statusDiv) {
+            statusDiv.innerText = "🟢 Data Manual (Lokal)";
+            statusDiv.className = "text-xs font-bold text-emerald-400";
+        }
+        if (lastUpdateDiv) {
+            lastUpdateDiv.innerText = `Terakhir Sync JKT48: (Parsed dari HTML) @ ${new Date().toLocaleTimeString('id-ID')} WIB`;
+        }
+        if (banner) {
+            banner.classList.remove('hidden');
+        }
+        if (bannerCode) {
+            bannerCode.innerText = "Parsed HTML";
+        }
+
+        filterData();
+        navigateTo('exclusives');
+        alert("Berhasil menerapkan data parser ke monitor Exclusives!");
+    } else if (jsonDataType === 'THEATER') {
+        const theaterTableBody = document.getElementById('theaterTableBody');
+        const dashboardSection = document.getElementById('theaterDashboardSection');
+        const statusLabel = document.getElementById('theaterStatus');
+        const selectedShowCode = document.getElementById('theaterSelectedShowCode');
+
+        if (theaterTableBody && dashboardSection && statusLabel) {
+            const rows = semuaJsonMasterData.map(item => {
+                let statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-green-500/20 text-green-400 whitespace-nowrap">Tersedia</span>`;
+                let rowBg = "hover:bg-slate-700/30 transition";
+
+                if (item.status.includes('SOLD OUT') || item.status.includes('TUTUP')) {
+                    statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-rose-500/20 text-rose-400 whitespace-nowrap">${item.status}</span>`;
+                    rowBg = "bg-rose-950/10 text-slate-500 hover:bg-rose-950/20";
+                } else if (item.status === 'Belum Dibuka') {
+                    statusBadge = `<span class="px-2 py-1 text-xs font-bold rounded bg-amber-500/20 text-amber-400 whitespace-nowrap">${item.status}</span>`;
+                    rowBg = "bg-amber-950/10 text-slate-400";
+                }
+
+                return `
+                    <tr class="${rowBg}">
+                        <td class="p-4 font-bold text-slate-200">${item.showTitle}</td>
+                        <td class="p-4 text-slate-300 text-xs font-medium">${item.dateTime}</td>
+                        <td class="p-4 text-slate-400 text-xs">${item.category} (Rp ${item.price.toLocaleString('id-ID')})</td>
+                        <td class="p-4 text-slate-300 text-xs font-mono text-center">${item.salesPeriod}</td>
+                        <td class="p-4 text-center font-mono font-semibold">${item.quota}</td>
+                        <td class="p-4 text-center font-mono text-xs font-semibold text-sky-400">${item.method}</td>
+                        <td class="p-4 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            theaterTableBody.innerHTML = rows;
+            statusLabel.innerText = "🟢 Data Manual (Lokal)";
+            statusLabel.className = "text-xs font-bold text-emerald-400";
+            if (selectedShowCode) selectedShowCode.innerText = "Code: Parsed HTML";
+            dashboardSection.classList.remove('hidden');
+
+            navigateTo('theater');
+            alert("Berhasil menerapkan data parser ke monitor Theater!");
+        }
+    }
+}

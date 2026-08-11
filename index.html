@@ -383,11 +383,15 @@
                 <label class="block text-xs font-bold uppercase tracking-wider text-purple-400 mb-2">Tempel (Paste) Response JSON atau Source Code HTML Halaman Tiket di sini:</label>
                 <textarea id="jsonInput" rows="5" class="w-full bg-slate-900/60 border border-slate-600 rounded-lg p-3 text-sm font-mono text-green-400 focus:outline-none focus:border-purple-500" placeholder='{"status": true, "data": [...]} atau Tempel Source Code HTML (Ctrl+U) halaman tiket theater JKT48...'></textarea>
                 
-                <div class="mt-4 flex flex-col sm:flex-row gap-3 justify-between items-center">
-                    <button onclick="prosesDump()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-lg shadow transition cursor-pointer text-sm w-full sm:w-auto">
-                        ⚡ Proses & Urutkan Data
-                    </button>
-                    
+                <div class="mt-4 flex flex-col sm:flex-row gap-3 items-center justify-between w-full">
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <button onclick="prosesDump()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-lg shadow transition cursor-pointer text-sm">
+                            ⚡ Proses & Urutkan Data
+                        </button>
+                        <button id="btnApplyToDashboard" onclick="terapkanKeDashboard()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-lg shadow transition cursor-pointer text-sm flex items-center gap-1.5 animate-pulse">
+                            📤 Terapkan ke Monitor Utama
+                        </button>
+                    </div>
                     <input type="text" id="jsonSearchFilter" oninput="filterJsonData()" placeholder="Cari member, kategori, atau tanggal..." class="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-sm w-full sm:w-72 focus:outline-none focus:border-purple-500 hidden">
                 </div>
             </section>
