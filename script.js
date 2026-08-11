@@ -962,7 +962,10 @@ function prosesDump() {
         if (rawText.includes('<') && rawText.includes('>')) {
             runHtmlParser(rawText);
         } else {
-            alert('Gagal membaca data. Pastikan seluruh teks ter-copy dengan sempurna ya!\nError: ' + error.message);
+            const success = prosesPlainTextExclusives(rawText);
+            if (!success) {
+                alert('Gagal membaca data. Pastikan seluruh teks ter-copy dengan sempurna ya!\nError: ' + error.message);
+            }
         }
     }
 }
@@ -974,6 +977,71 @@ function runHtmlParser(rawText) {
     } else {
         prosesHtmlTheater(rawText);
     }
+}
+
+function prosesPlainTextExclusives(text) {
+    semuaJsonMasterData = [];
+    const lowerText = text.toLowerCase();
+    
+    memberPhotosMap.forEach((val, key) => {
+        const nameEscaped = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(nameEscaped + `[\\s\\S]{1,150}?(sold\\s*out|habis|sisa\\s*:\\s*\\d+|\\d+\\s*tiket|pesan|beli|sisa\\s*\\d+)`, 'gi');
+        
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+            const matchText = m[0].toLowerCase();
+            let sisa = 5;
+            if (matchText.includes('sold out') || matchText.includes('habis')) {
+                sisa = 0;
+            } else {
+                const numMatch = matchText.match(/(?:sisa|kuota|quota|stok|stock)?\s*:?\s*(\d+)/i) || matchText.match(/(\d+)/);
+                if (numMatch) sisa = parseInt(numMatch[1]);
+            }
+            
+            let jalur = "-";
+            const index = m.index;
+            const contextBefore = text.slice(Math.max(0, index - 200), index).toLowerCase();
+            
+            const sessionMatch = contextBefore.match(/sesi\s*(\d+)/i) || text.slice(index, index + 300).toLowerCase().match(/sesi\s*(\d+)/i);
+            const sesi = sessionMatch ? `Sesi ${sessionMatch[1]}` : "Sesi Umum";
+
+            const jalurMatch = contextBefore.match(/jalur\s*(\d+)/i) || text.slice(index, index + 300).toLowerCase().match(/jalur\s*(\d+)/i);
+            if (jalurMatch) jalur = `Jalur ${jalurMatch[1]}`;
+            
+            const formattedName = key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            
+            semuaJsonMasterData.push({
+                sesi: sesi,
+                jalur: jalur,
+                nama: formattedName,
+                terjual: 0,
+                sisa: sisa
+            });
+        }
+    });
+
+    const uniqueMap = new Map();
+    semuaJsonMasterData.forEach(item => {
+        const uniqueKey = `${item.sesi}-${item.nama}-${item.jalur}`;
+        if (!uniqueMap.has(uniqueKey) || uniqueMap.get(uniqueKey).sisa > item.sisa) {
+            uniqueMap.set(uniqueKey, item);
+        }
+    });
+    semuaJsonMasterData = Array.from(uniqueMap.values());
+    semuaJsonMasterData.sort((a, b) => a.sisa - b.sisa);
+
+    if (semuaJsonMasterData.length > 0) {
+        jsonDataType = 'EXCLUSIVES';
+        updateJsonTableHeaders('EXCLUSIVES');
+        renderJsonTabel(semuaJsonMasterData);
+        
+        document.getElementById('jsonDashboardSection').classList.remove('hidden');
+        document.getElementById('jsonSearchFilter').classList.remove('hidden');
+        document.getElementById('btnApplyToDashboard').classList.remove('hidden');
+        document.getElementById('jsonLastUpdate').innerText = `Terakhir Update: Parsed dari Plain Text @ ${new Date().toLocaleTimeString('id-ID')} WIB`;
+        return true;
+    }
+    return false;
 }
 
 function prosesHtmlExclusives(html) {
