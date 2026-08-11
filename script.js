@@ -935,7 +935,7 @@ function prosesDump() {
     // Deteksi jika input adalah HTML
     if (rawText.startsWith('<') || rawText.includes('<html') || rawText.includes('<!DOCTYPE')) {
         const lowerText = rawText.toLowerCase();
-        if (lowerText.includes('purchase/exclusive') || lowerText.includes('/exclusive') || lowerText.includes('meet & greet') || lowerText.includes('2-shot') || lowerText.includes('video call') || lowerText.includes('photobook')) {
+        if (lowerText.includes('exclusive') || lowerText.includes('meet & greet') || lowerText.includes('2-shot') || lowerText.includes('video call') || lowerText.includes('photobook')) {
             prosesHtmlExclusives(rawText);
         } else {
             prosesHtmlTheater(rawText);
@@ -1106,6 +1106,44 @@ function prosesHtmlExclusives(html) {
         }
     });
 
+    // Fallback 1: Jika parsing tabel gagal, cari div card atau grid member yang terstruktur
+    if (semuaJsonMasterData.length === 0) {
+        const cards = doc.querySelectorAll('div, li, p');
+        cards.forEach(card => {
+            if (card.children.length > 4) return;
+            
+            const cardText = card.textContent.trim();
+            const cardTextLower = cardText.toLowerCase();
+            
+            memberPhotosMap.forEach((val, key) => {
+                if (cardTextLower.includes(key) && cardText.length < 150) {
+                    let sisa = 5;
+                    if (cardTextLower.includes('sold out') || cardTextLower.includes('habis') || cardTextLower.includes('penuh')) {
+                        sisa = 0;
+                    } else {
+                        const numMatch = cardText.match(/(?:sisa|kuota|quota|stock|stok)?\s*:?\s*(\d+)/i) || cardText.match(/(\d+)/);
+                        if (numMatch) sisa = parseInt(numMatch[1]);
+                    }
+                    
+                    let jalur = "-";
+                    const jalurMatch = cardText.match(/jalur\s*(\d+)/i) || cardText.match(/jalur\s*([a-zA-Z]+)/i);
+                    if (jalurMatch) jalur = jalurMatch[0];
+
+                    const formattedName = key.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    
+                    semuaJsonMasterData.push({
+                        sesi: activeSession,
+                        jalur: jalur,
+                        nama: formattedName,
+                        terjual: 0,
+                        sisa: sisa
+                    });
+                }
+            });
+        });
+    }
+
+    // Fallback 2: Regex scanner bebas jika DOM parsing sama sekali tidak mendeteksi data
     if (semuaJsonMasterData.length === 0) {
         memberPhotosMap.forEach((val, key) => {
             const nameEscaped = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
