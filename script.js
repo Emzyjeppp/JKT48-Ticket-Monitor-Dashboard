@@ -1020,6 +1020,7 @@ function prosesHtmlExclusives(html) {
                 
                 let memberName = "";
                 let jalur = "-";
+                let sesi = activeSession;
                 let sisa = 5;
                 let terjual = 0;
                 let isDataRow = false;
@@ -1027,46 +1028,70 @@ function prosesHtmlExclusives(html) {
                 cellTexts.forEach((ct, idx) => {
                     const ctLower = ct.toLowerCase();
                     
-                    memberPhotosMap.forEach((val, key) => {
-                        if (ctLower === key || ctLower.startsWith(key) || ctLower.includes(" " + key) || (key.includes(ctLower) && ctLower.length > 3)) {
-                            memberName = key;
-                            isDataRow = true;
-                        }
-                    });
-
-                    if (ctLower.includes('jalur')) {
+                    if (ctLower.includes('sesi') && ct.length < 30) {
+                        sesi = ct;
+                    }
+                    else if (ctLower.includes('jalur') && ct.length < 20) {
                         jalur = ct;
                     }
-
-                    if (ctLower.includes('sold out') || ctLower.includes('habis') || ctLower.includes('habis terjual') || ctLower.includes('penuh')) {
+                    else if (ctLower.includes('sold out') || ctLower.includes('habis') || ctLower.includes('penuh')) {
                         sisa = 0;
                         isDataRow = true;
-                    } else if (ctLower.includes('sisa') || ctLower.includes('tersedia')) {
+                    }
+                    else if (ctLower.includes('sisa') || ctLower.includes('tersedia')) {
                         const numMatch = ct.match(/(\d+)/);
                         if (numMatch) {
                             sisa = parseInt(numMatch[1]);
                         }
                         isDataRow = true;
                     }
-                });
-
-                if (isDataRow && memberName) {
-                    let displaySession = activeSession;
-                    cellTexts.forEach(ct => {
-                        if (ct.toLowerCase().includes('sesi') && ct.length < 30) {
-                            displaySession = ct;
+                    
+                    memberPhotosMap.forEach((val, key) => {
+                        if (ctLower === key || ctLower.startsWith(key) || ctLower.includes(" " + key) || (key.includes(ctLower) && ctLower.length > 3)) {
+                            memberName = key;
+                            isDataRow = true;
                         }
                     });
+                });
+
+                if (!memberName) {
+                    for (let idx = 0; idx < cellTexts.length; idx++) {
+                        const ct = cellTexts[idx];
+                        const ctLower = ct.toLowerCase();
+                        
+                        if (!ct) continue;
+                        
+                        if (ctLower.includes('sesi') || 
+                            ctLower.includes('jalur') || 
+                            ctLower.includes('sold out') || 
+                            ctLower.includes('habis') || 
+                            ctLower.includes('penuh') || 
+                            ctLower.includes('beli') || 
+                            ctLower.includes('pesan') ||
+                            ctLower.includes('tambah') ||
+                            /^\d+$/.test(ct.replace(/[\s,.]/g, '')) ||
+                            ct.length > 50
+                        ) {
+                            continue;
+                        }
+                        
+                        memberName = ct;
+                        isDataRow = true;
+                        break;
+                    }
+                }
+
+                if (isDataRow && memberName) {
+                    memberName = memberName.replace(/\s+/g, ' ').trim();
+                    const formattedName = memberName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                     
                     const rowHtml = el.innerHTML.toLowerCase();
                     if (rowHtml.includes('sold out') || rowHtml.includes('habis')) {
                         sisa = 0;
                     }
 
-                    const formattedName = memberName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
                     semuaJsonMasterData.push({
-                        sesi: displaySession,
+                        sesi: sesi,
                         jalur: jalur,
                         nama: formattedName,
                         terjual: terjual,
